@@ -1,6 +1,6 @@
-from scenes.base_scene import Scene
+from .base_scene import Scene
 from settings import *
-from ui import Button, Slider, draw_panel, draw_text
+from render.ui.ui import Button, Slider, draw_panel, draw_text
 
 class SettingsScene(Scene):
     def __init__(self, game):
@@ -10,7 +10,7 @@ class SettingsScene(Scene):
         self.graphics_slider = Slider(420, 360, 350, "Graficos", 60)
 
     def go_back(self):
-        from scenes.main_menu_scene import MainMenuScene
+        from .main_menu_scene import MainMenuScene
         self.game.change_scene(MainMenuScene(self.game))
 
     def handle_event(self, event):

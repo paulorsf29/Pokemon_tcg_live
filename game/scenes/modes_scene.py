@@ -1,6 +1,6 @@
-from scenes.base_scene import Scene
+from .base_scene import Scene
 from settings import *
-from ui import Button, draw_panel, draw_text
+from render.ui.ui  import Button, draw_panel, draw_text
 
 class ModesScene(Scene):
     def __init__(self, game):
@@ -12,15 +12,15 @@ class ModesScene(Scene):
         ]
 
     def play_standard(self):
-        from scenes.battle_scene import BattleScene
+        from .battle_scene import BattleScene
         self.game.change_scene(BattleScene(self.game, "Padrao"))
 
     def play_ranked(self):
-        from scenes.battle_scene import BattleScene
+        from .battle_scene import BattleScene
         self.game.change_scene(BattleScene(self.game, "Ranqueado"))
 
     def go_back(self):
-        from scenes.main_menu_scene import MainMenuScene
+        from .main_menu_scene import MainMenuScene
         self.game.change_scene(MainMenuScene(self.game))
 
     def handle_event(self, event):

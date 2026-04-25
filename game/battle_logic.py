@@ -1,6 +1,6 @@
 import random
 from settings import TURN_TIME_LIMIT, MAX_INACTIVE_TURNS
-from card_data import get_deck_by_name
+from .card_data import get_deck_by_name
 
 class BattleLogic:
     def __init__(self, player_deck_name):

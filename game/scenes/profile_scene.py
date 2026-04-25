@@ -1,7 +1,7 @@
 import pygame
-from scenes.base_scene import Scene
+from .base_scene import Scene
 from settings import *
-from ui import Button, draw_panel, draw_text
+from render.ui.ui import Button, draw_panel, draw_text
 
 class ProfileScene(Scene):
     def __init__(self, game):
@@ -9,7 +9,7 @@ class ProfileScene(Scene):
         self.back_btn = Button((30, 30, 140, 50), "Voltar", self.go_back)
 
     def go_back(self):
-        from scenes.main_menu_scene import MainMenuScene
+        from .main_menu_scene import MainMenuScene
         self.game.change_scene(MainMenuScene(self.game))
 
     def handle_event(self, event):

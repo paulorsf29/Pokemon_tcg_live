@@ -1,7 +1,7 @@
 import pygame
-from scenes.base_scene import Scene
+from .base_scene import Scene
 from settings import *
-from ui import Button, draw_panel, draw_text
+from render.ui.ui import draw_panel, Button, draw_text
 
 class DeckScene(Scene):
     def __init__(self, game):
@@ -19,12 +19,12 @@ class DeckScene(Scene):
         self.play_btn = Button((980, 620, 220, 55), "Usar este deck", self.use_deck)
 
     def go_back(self):
-        from scenes.main_menu_scene import MainMenuScene
+        from .main_menu_scene import MainMenuScene
         self.game.change_scene(MainMenuScene(self.game))
 
     def use_deck(self):
         self.game.selected_deck = self.decks[self.selected]
-        from scenes.modes_scene import ModesScene
+        from .modes_scene import ModesScene
         self.game.change_scene(ModesScene(self.game))
 
     def handle_event(self, event):

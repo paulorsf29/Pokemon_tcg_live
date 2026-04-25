@@ -1,9 +1,9 @@
 import pygame
-from scenes.base_scene import Scene
-from scenes.result_scene import ResultScene
+from .base_scene import Scene
+from .result_scene import ResultScene
 from settings import *
-from ui import Button, draw_panel, draw_text
-from battle_logic import BattleLogic
+from render.ui.ui import Button, draw_panel, draw_text
+from game.battle_logic import BattleLogic
 
 class CardSprite:
     def __init__(self, data, x, y):

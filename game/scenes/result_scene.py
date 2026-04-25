@@ -1,6 +1,6 @@
-from scenes.base_scene import Scene
+from .base_scene import Scene
 from settings import *
-from ui import Button, draw_text
+from render.ui.ui import Button, draw_text
 
 class ResultScene(Scene):
     def __init__(self, game, result_title, reason):
@@ -12,7 +12,7 @@ class ResultScene(Scene):
         self.exit_btn = Button((490, 500, 300, 60), "Sair", self.game.quit, bg=RED, hover=(170, 50, 50))
 
     def go_menu(self):
-        from scenes.main_menu_scene import MainMenuScene
+        from .main_menu_scene import MainMenuScene
         self.game.change_scene(MainMenuScene(self.game))
 
     def handle_event(self, event):

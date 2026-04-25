@@ -1,7 +1,7 @@
 import sys
 import pygame
 from settings import WIDTH, HEIGHT, FPS, TITLE
-from scenes.splash_scene import SplashScene
+from .scenes.splash_scene import SplashScene
 
 class Game:
     def __init__(self):

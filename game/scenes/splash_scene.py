@@ -1,6 +1,6 @@
-from scenes.base_scene import Scene
+from .base_scene import Scene
 from settings import *
-from ui import draw_text
+from render.ui.ui import draw_text
 
 class SplashScene(Scene):
     def __init__(self, game):
@@ -10,7 +10,7 @@ class SplashScene(Scene):
     def update(self, dt):
         self.timer -= dt
         if self.timer <= 0:
-            from scenes.main_menu_scene import MainMenuScene
+            from .main_menu_scene import MainMenuScene
             self.game.change_scene(MainMenuScene(self.game))
 
     def draw(self, surface):

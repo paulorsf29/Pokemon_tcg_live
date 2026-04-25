@@ -1,6 +1,6 @@
-from scenes.base_scene import Scene
+from .base_scene import Scene
 from settings import *
-from ui import Button, draw_text
+from render.ui.ui import Button, draw_text
 
 class MainMenuScene(Scene):
     def __init__(self, game):
@@ -15,19 +15,19 @@ class MainMenuScene(Scene):
         ]
 
     def go_modes(self):
-        from scenes.modes_scene import ModesScene
+        from .modes_scene import ModesScene
         self.game.change_scene(ModesScene(self.game))
 
     def go_decks(self):
-        from scenes.deck_scene import DeckScene
+        from .deck_scene import DeckScene
         self.game.change_scene(DeckScene(self.game))
 
     def go_profile(self):
-        from scenes.profile_scene import ProfileScene
+        from .profile_scene import ProfileScene
         self.game.change_scene(ProfileScene(self.game))
 
     def go_settings(self):
-        from scenes.settings_scene import SettingsScene
+        from .settings_scene import SettingsScene
         self.game.change_scene(SettingsScene(self.game))
 
     def handle_event(self, event):
