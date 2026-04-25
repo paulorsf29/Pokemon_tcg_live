@@ -33,8 +33,8 @@ class ModesScene(Scene):
 
         draw_panel(surface, pygame.Rect(300, 180, 680, 260))
         draw_text(surface, "Escolha o modo de batalha", FONT_MED, WHITE, WIDTH // 2, 210, center=True)
-        draw_text(surface, "Padrao: partidas casuais sem premios.", FONT, TEXT_DIM, WIDTH // 2, 380, center=True)
-        draw_text(surface, "Ranqueado: suba de escala e receba recompensas.", FONT, TEXT_DIM, WIDTH // 2, 410, center=True)
+        draw_text(surface, "Padrao: partidas casuais sem premios externos.", FONT, TEXT_DIM, WIDTH // 2, 380, center=True)
+        draw_text(surface, "Ranqueado: modo competitivo com progressao.", FONT, TEXT_DIM, WIDTH // 2, 410, center=True)
 
         for button in self.buttons:
             button.draw(surface)

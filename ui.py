@@ -2,7 +2,7 @@ import pygame
 from settings import *
 
 def draw_text(surface, text, font, color, x, y, center=False):
-    img = font.render(text, True, color)
+    img = font.render(str(text), True, color)
     rect = img.get_rect()
     if center:
         rect.center = (x, y)

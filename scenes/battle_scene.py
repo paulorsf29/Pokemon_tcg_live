@@ -1,88 +1,246 @@
 import pygame
 from scenes.base_scene import Scene
+from scenes.result_scene import ResultScene
 from settings import *
 from ui import Button, draw_panel, draw_text
+from battle_logic import BattleLogic
+
+class CardSprite:
+    def __init__(self, data, x, y):
+        self.data = data
+        self.base_x = x
+        self.base_y = y
+        self.x = x
+        self.y = y
+        self.w = CARD_W
+        self.h = CARD_H
+        self.dragging = False
+        self.selected = False
+        self.drag_offset_x = 0
+        self.drag_offset_y = 0
+
+    def rect(self, zoom=1.0):
+        return pygame.Rect(self.x, self.y, int(self.w * zoom), int(self.h * zoom))
+
+    def contains_point(self, pos, zoom=1.0):
+        return self.rect(zoom).collidepoint(pos)
+
+    def start_drag(self, mouse_pos):
+        self.dragging = True
+        self.drag_offset_x = mouse_pos[0] - self.x
+        self.drag_offset_y = mouse_pos[1] - self.y
+
+    def drag(self, mouse_pos):
+        self.x = mouse_pos[0] - self.drag_offset_x
+        self.y = mouse_pos[1] - self.drag_offset_y
+
+    def reset_position(self):
+        self.x = self.base_x
+        self.y = self.base_y
+        self.dragging = False
 
 class BattleScene(Scene):
     def __init__(self, game, mode_name):
         super().__init__(game)
         self.mode_name = mode_name
-        self.turn_time = 30
-        self.accumulator = 0
+        selected_deck = getattr(self.game, "selected_deck", "Deck Pikachu EX")
+        self.logic = BattleLogic(selected_deck)
+
         self.back_btn = Button((20, 20, 140, 46), "Render-se", self.surrender, bg=RED, hover=(170, 50, 50))
-        self.end_turn_btn = Button((1050, 640, 180, 50), "Encerrar turno", self.end_turn)
+        self.end_turn_btn = Button((1040, 640, 190, 50), "Encerrar turno", self.end_turn)
+
+        self.card_sprites = []
+        self.selected_index = None
+        self.zoom = 1.0
+        self.min_zoom = 1.0
+        self.max_zoom = 1.25
+        self.opponent_delay = 0.8
+
+        self.rebuild_hand_positions()
+
+    def rebuild_hand_positions(self):
+        self.card_sprites = []
+        start_x = 180
+        gap = 145
+        y = 560
+
+        for i, card in enumerate(self.logic.player_hand):
+            sprite = CardSprite(card, start_x + i * gap, y)
+            self.card_sprites.append(sprite)
 
     def surrender(self):
-        from scenes.main_menu_scene import MainMenuScene
-        self.game.change_scene(MainMenuScene(self.game))
+        self.game.change_scene(ResultScene(self.game, "Derrota", "Voce se rendeu"))
 
     def end_turn(self):
-        self.turn_time = 30
+        if self.logic.current_turn == "player":
+            self.logic.register_action()
+            self.logic.end_turn()
+            self.rebuild_hand_positions()
+
+    def handle_card_click(self, mouse_pos):
+        for i in range(len(self.card_sprites) - 1, -1, -1):
+            sprite = self.card_sprites[i]
+            if sprite.contains_point(mouse_pos, self.zoom):
+                self.selected_index = i
+                sprite.selected = True
+                sprite.start_drag(mouse_pos)
+                self.logic.register_action()
+                return
+
+    def use_selected_card_if_dropped_on_active(self):
+        if self.selected_index is None:
+            return
+
+        sprite = self.card_sprites[self.selected_index]
+        target_rect = pygame.Rect(720, 270, CARD_W, CARD_H)
+
+        if target_rect.colliderect(sprite.rect()):
+            ok, _ = self.logic.use_card_from_hand(self.selected_index)
+            self.rebuild_hand_positions()
+            self.selected_index = None
+            return ok
+        return False
 
     def handle_event(self, event):
         self.back_btn.handle_event(event)
         self.end_turn_btn.handle_event(event)
 
-    def update(self, dt):
-        self.accumulator += dt
-        if self.accumulator >= 1:
-            self.accumulator = 0
-            self.turn_time -= 1
-            if self.turn_time <= 0:
-                self.turn_time = 30
+        if self.logic.winner:
+            return
 
-    def draw_card(self, surface, x, y, title, hp, selected=False):
-        rect = pygame.Rect(x, y, 120, 170)
+        if self.logic.current_turn != "player":
+            return
+
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                self.handle_card_click(event.pos)
+
+            elif event.button == 4:
+                self.zoom = min(self.max_zoom, self.zoom + 0.05)
+            elif event.button == 5:
+                self.zoom = max(self.min_zoom, self.zoom - 0.05)
+
+        elif event.type == pygame.MOUSEMOTION:
+            if self.selected_index is not None:
+                self.card_sprites[self.selected_index].drag(event.pos)
+
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if event.button == 1 and self.selected_index is not None:
+                used = self.use_selected_card_if_dropped_on_active()
+                if not used:
+                    self.card_sprites[self.selected_index].reset_position()
+                self.selected_index = None
+
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                ok, _ = self.logic.player_attack()
+                if ok:
+                    self.logic.register_action()
+
+    def update(self, dt):
+        if self.logic.winner:
+            title = "Vitoria" if self.logic.winner == "player" else "Derrota"
+            self.game.change_scene(ResultScene(self.game, title, self.logic.win_reason))
+            return
+
+        self.logic.update_timer(dt)
+
+        if self.logic.winner:
+            return
+
+        if self.logic.current_turn == "opponent":
+            self.opponent_delay -= dt
+            if self.opponent_delay <= 0:
+                self.logic.opponent_turn_ai()
+                self.opponent_delay = 0.8
+                self.rebuild_hand_positions()
+
+    def draw_card_visual(self, surface, x, y, card, zoom=1.0, selected=False):
+        w = int(CARD_W * zoom)
+        h = int(CARD_H * zoom)
+        rect = pygame.Rect(x, y, w, h)
         color = (250, 250, 250) if not selected else (255, 240, 180)
+
         pygame.draw.rect(surface, color, rect, border_radius=12)
         pygame.draw.rect(surface, ACCENT_2, rect, 3, border_radius=12)
-        draw_text(surface, title, FONT_SMALL, (20, 20, 20), x + 10, y + 12)
-        draw_text(surface, f"HP {hp}", FONT_SMALL, (20, 20, 20), x + 10, y + 40)
-        pygame.draw.rect(surface, (220, 220, 235), (x + 10, y + 70, 100, 60), border_radius=8)
-        draw_text(surface, "Arte", FONT_SMALL, GRAY, x + 60, y + 100, center=True)
+
+        draw_text(surface, card["name"], FONT_SMALL, BLACK, x + 10, y + 12)
+        draw_text(surface, card["type"].upper(), FONT_SMALL, GRAY, x + 10, y + 38)
+
+        if card["type"] == "pokemon":
+            draw_text(surface, f"HP {card['hp']}", FONT_SMALL, BLACK, x + 10, y + 64)
+            draw_text(surface, f"ATK {card['damage']}", FONT_SMALL, BLACK, x + 10, y + 88)
+        else:
+            if card["heal"] > 0:
+                draw_text(surface, f"Cura {card['heal']}", FONT_SMALL, BLACK, x + 10, y + 64)
+            if card["damage"] > 0:
+                draw_text(surface, f"+Dano {card['damage']}", FONT_SMALL, BLACK, x + 10, y + 88)
+            if card["draw"] > 0:
+                draw_text(surface, f"Compra {card['draw']}", FONT_SMALL, BLACK, x + 10, y + 112)
+            if card["prize_bonus"] > 0:
+                draw_text(surface, f"+Premio", FONT_SMALL, BLACK, x + 10, y + 136)
+            if card["shield"] > 0:
+                draw_text(surface, f"Escudo {card['shield']}", FONT_SMALL, BLACK, x + 10, y + 136)
+
+        pygame.draw.rect(surface, (220, 220, 235), (x + 10, y + h - 50, w - 20, 35), border_radius=8)
+
+    def draw_active_pokemon(self, surface, x, y, active, label):
+        draw_text(surface, label, FONT, WHITE, x, y - 30)
+        rect = pygame.Rect(x, y, 160, 210)
+        pygame.draw.rect(surface, (250, 250, 250), rect, border_radius=14)
+        pygame.draw.rect(surface, ACCENT_2, rect, 3, border_radius=14)
+
+        draw_text(surface, active["name"], FONT_MED, BLACK, x + 12, y + 15)
+        draw_text(surface, f"HP: {active['hp']}/{active['max_hp']}", FONT_SMALL, BLACK, x + 12, y + 60)
+        draw_text(surface, f"ATK: {active['damage']}", FONT_SMALL, BLACK, x + 12, y + 90)
+
+        hp_ratio = max(0, active["hp"] / active["max_hp"])
+        pygame.draw.rect(surface, GRAY, (x + 12, y + 130, 130, 16), border_radius=6)
+        pygame.draw.rect(surface, GREEN if hp_ratio > 0.4 else RED, (x + 12, y + 130, int(130 * hp_ratio), 16), border_radius=6)
 
     def draw(self, surface):
-        surface.fill((20, 110, 90))
+        surface.fill(TABLE_GREEN)
         draw_text(surface, f"Batalha - {self.mode_name}", FONT_BIG, WHITE, WIDTH // 2, 30, center=True)
 
-        selected_deck = getattr(self.game, "selected_deck", "Deck Padrao")
-
-        draw_panel(surface, pygame.Rect(120, 70, 1040, 120), color=(35, 65, 55))
+        draw_panel(surface, pygame.Rect(120, 70, 1040, 120), color=TABLE_GREEN_2)
         draw_text(surface, "Oponente", FONT_MED, WHITE, 150, 90)
-        draw_text(surface, "Premios restantes: 6", FONT, WHITE, 150, 125)
-        draw_text(surface, "Cartas no deck: 32", FONT, WHITE, 150, 150)
+        draw_text(surface, f"Premios: {self.logic.opponent_prizes_taken}/6", FONT, WHITE, 150, 125)
+        draw_text(surface, f"Deck: {len(self.logic.opponent_deck)}", FONT, WHITE, 150, 150)
 
-        draw_panel(surface, pygame.Rect(180, 215, 920, 250), color=(42, 85, 70))
-        draw_text(surface, "Pokemon Ativo do Oponente", FONT, WHITE, 280, 240)
-        self.draw_card(surface, 240, 270, "Charizard", 330)
+        draw_panel(surface, pygame.Rect(180, 215, 920, 250), color=TABLE_GREEN_3)
 
-        draw_text(surface, "Seu Pokemon Ativo", FONT, WHITE, 760, 240)
-        self.draw_card(surface, 720, 270, "Pikachu", 220, selected=True)
+        if self.logic.opponent_active:
+            self.draw_active_pokemon(surface, 240, 250, self.logic.opponent_active, "Pokemon Ativo do Oponente")
+        if self.logic.player_active:
+            self.draw_active_pokemon(surface, 720, 250, self.logic.player_active, "Seu Pokemon Ativo")
 
-        draw_panel(surface, pygame.Rect(70, 520, 930, 170), color=(35, 65, 55))
+        draw_panel(surface, pygame.Rect(70, 520, 930, 170), color=TABLE_GREEN_2)
         draw_text(surface, "Sua mao", FONT_MED, WHITE, 100, 540)
 
-        hand_names = ["Energia", "Pocao", "Apoiador", "Item", "Pokemon"]
-        for i, name in enumerate(hand_names):
-            self.draw_card(surface, 180 + i * 145, 560, name, "--")
+        for i, sprite in enumerate(self.card_sprites):
+            selected = (i == self.selected_index)
+            self.draw_card_visual(surface, sprite.x, sprite.y, sprite.data, zoom=self.zoom, selected=selected)
 
         draw_panel(surface, pygame.Rect(1030, 120, 210, 500), color=PANEL_DARK)
         draw_text(surface, "Turno", FONT_MED, ACCENT, 1135, 155, center=True)
-        timer_color = RED if self.turn_time <= 15 else WHITE
-        draw_text(surface, str(self.turn_time), FONT_TITLE, timer_color, 1135, 225, center=True)
+        draw_text(surface, self.logic.current_turn.upper(), FONT, WHITE, 1135, 190, center=True)
 
-        draw_text(surface, "Objetivo:", FONT, WHITE, 1060, 310)
-        draw_text(surface, "Pegar 6 cartas", FONT_SMALL, TEXT, 1060, 345)
-        draw_text(surface, "de premio antes", FONT_SMALL, TEXT, 1060, 370)
-        draw_text(surface, "do adversario.", FONT_SMALL, TEXT, 1060, 395)
+        timer_color = RED if self.logic.turn_timer <= INACTIVITY_WARNING_TIME else WHITE
+        draw_text(surface, int(self.logic.turn_timer), FONT_TITLE, timer_color, 1135, 245, center=True)
 
-        draw_text(surface, "Deck:", FONT, WHITE, 1060, 445)
-        draw_text(surface, selected_deck, FONT_SMALL, TEXT, 1060, 475)
+        draw_text(surface, "Inatividade:", FONT, WHITE, 1060, 320)
+        draw_text(surface, f"Voce: {self.logic.inactive_turns['player']}/{MAX_INACTIVE_TURNS}", FONT_SMALL, TEXT, 1060, 350)
+        draw_text(surface, f"Oponente: {self.logic.inactive_turns['opponent']}/{MAX_INACTIVE_TURNS}", FONT_SMALL, TEXT, 1060, 375)
 
-        draw_text(surface, "Acoes:", FONT, WHITE, 1060, 525)
-        draw_text(surface, "- Selecionar carta", FONT_SMALL, TEXT, 1060, 555)
-        draw_text(surface, "- Usar habilidade", FONT_SMALL, TEXT, 1060, 580)
-        draw_text(surface, "- Atacar", FONT_SMALL, TEXT, 1060, 605)
+        draw_text(surface, "Premios:", FONT, WHITE, 1060, 430)
+        draw_text(surface, f"Voce: {self.logic.player_prizes_taken}/6", FONT_SMALL, TEXT, 1060, 460)
+        draw_text(surface, f"Oponente: {self.logic.opponent_prizes_taken}/6", FONT_SMALL, TEXT, 1060, 485)
+
+        draw_text(surface, "Comandos:", FONT, WHITE, 1060, 535)
+        draw_text(surface, "Arraste carta para", FONT_SMALL, TEXT, 1060, 565)
+        draw_text(surface, "seu pokemon ativo", FONT_SMALL, TEXT, 1060, 590)
+        draw_text(surface, "SPACE = atacar", FONT_SMALL, TEXT, 1060, 615)
+        draw_text(surface, "Scroll = zoom", FONT_SMALL, TEXT, 1060, 640)
 
         self.back_btn.draw(surface)
         self.end_turn_btn.draw(surface)

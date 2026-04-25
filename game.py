@@ -10,7 +10,7 @@ class Game:
         pygame.display.set_caption(TITLE)
         self.clock = pygame.time.Clock()
         self.running = True
-        self.selected_deck = "Deck Padrao"
+        self.selected_deck = "Deck Pikachu EX"
         self.scene = SplashScene(self)
 
     def change_scene(self, new_scene):
