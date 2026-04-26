@@ -35,6 +35,7 @@ def _carta_para_dict(carta) -> dict:
         "draw": 0,
         "prize_bonus": 0,
         "shield": 0,
+        "state": getattr(carta, "state", "basic"),
         "_obj": carta,  # mantém referência caso seja útil
     }
 
@@ -154,14 +155,13 @@ class BattleLogic:
             self.check_winner("player", "Oponente sem pokemon inicial")
 
     def _garantir_pokemon_inicial(self, side):
-        """Procura primeiro na mão; se não tiver, busca no deck (mulligan)."""
         ativo = self.find_first_pokemon(side)
         if ativo is not None:
             return ativo
 
         deck = self.player_deck if side == "player" else self.opponent_deck
         for card in list(deck):
-            if card["type"] == "pokemon":
+            if card["type"] == "pokemon" and card.get("state") == "basic":  # <-- adicionar state aqui
                 deck.remove(card)
                 return {
                     "name": card["name"],
@@ -189,7 +189,7 @@ class BattleLogic:
     def find_first_pokemon(self, side):
         hand = self.player_hand if side == "player" else self.opponent_hand
         for card in hand:
-            if card["type"] == "pokemon":
+            if card["type"] == "pokemon" and card.get("state") == "basic":
                 hand.remove(card)
                 return {
                     "name": card["name"],

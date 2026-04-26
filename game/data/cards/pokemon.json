@@ -5,6 +5,7 @@
     "name": "Pikachu EX",
     "description": "Pokémon elétrico agressivo.",
     "hp": 220,
+    "State": "basic",
     "attacks": [
       {
         "name": "Surto Trovejante",
@@ -46,6 +47,7 @@
     "name": "Raichu",
     "description": "Pokémon elétrico veloz.",
     "hp": 150,
+    "State": "1",
     "attacks": [
       {
         "name": "Choque Veloz",
@@ -75,6 +77,7 @@
     "name": "Charizard EX",
     "description": "Pokémon de fogo devastador.",
     "hp": 330,
+    "State": "2",
     "attacks": [
       {
         "name": "Brasa Suprema",
@@ -104,6 +107,7 @@
     "name": "Charmander",
     "description": "Pokémon de fogo básico.",
     "hp": 70,
+    "State": "basic",
     "attacks": [
       {
         "name": "Faísca",
@@ -133,6 +137,7 @@
     "name": "Chien-Pao",
     "description": "Pokémon aquático lendário.",
     "hp": 230,
+    "State": "basic",
     "attacks": [
       {
         "name": "Lâmina Gélida",
@@ -162,6 +167,7 @@
     "name": "Frigibax",
     "description": "Pokémon aquático básico.",
     "hp": 70,
+    "State": "basic",
     "attacks": [
       {
         "name": "Gelo Fraco",
@@ -191,6 +197,7 @@
     "name": "Miraidon",
     "description": "Pokémon elétrico futurista.",
     "hp": 220,
+    "State": "basic",
     "attacks": [
       {
         "name": "Pulso Íon",
@@ -220,6 +227,7 @@
     "name": "Regieleki",
     "description": "Pokémon elétrico rápido.",
     "hp": 140,
+    "State": "basic",
     "attacks": [
       {
         "name": "Choque Relâmpago",
@@ -249,6 +257,7 @@
     "name": "Gardevoir",
     "description": "Pokémon psíquico refinado.",
     "hp": 310,
+    "State": "2",
     "attacks": [
       {
         "name": "Pulso Mental",
@@ -278,6 +287,7 @@
     "name": "Ralts",
     "description": "Pokémon psíquico básico.",
     "hp": 60,
+    "State": "basic",
     "attacks": [
       {
         "name": "Toque Psíquico",
