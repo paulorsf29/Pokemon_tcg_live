@@ -1,0 +1,14 @@
+{
+  "name": "Deck Chien-Pao",
+  "cards": [
+    { "card_id": "chien_pao", "quantity": 1 },
+    { "card_id": "frigibax", "quantity": 1 },
+    { "card_id": "potion", "quantity": 2 },
+    { "card_id": "super_potion", "quantity": 1 },
+    { "card_id": "professor", "quantity": 1 },
+    { "card_id": "power_band", "quantity": 1 },
+    { "card_id": "lucky_prize", "quantity": 1 },
+    { "card_id": "barrier", "quantity": 1 },
+    { "card_id": "water_energy", "quantity": 6 }
+  ]
+}

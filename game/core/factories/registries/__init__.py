@@ -1,0 +1,7 @@
+from .registries import SELETOR_REGISTRY, CUSTO_REGISTRY, EFEITO_REGISTRY
+
+__all__ = [
+    "SELETOR_REGISTRY",
+    "CUSTO_REGISTRY",
+    "EFEITO_REGISTRY",
+]

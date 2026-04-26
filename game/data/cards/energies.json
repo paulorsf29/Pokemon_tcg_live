@@ -1,0 +1,34 @@
+[
+  {
+    "id": "electric_energy",
+    "type": "energy",
+    "name": "Energia Elétrica",
+    "description": "Energia básica elétrica.",
+    "energy_type": "electric",
+    "is_basic": true
+  },
+  {
+    "id": "fire_energy",
+    "type": "energy",
+    "name": "Energia de Fogo",
+    "description": "Energia básica de fogo.",
+    "energy_type": "fire",
+    "is_basic": true
+  },
+  {
+    "id": "water_energy",
+    "type": "energy",
+    "name": "Energia de Água",
+    "description": "Energia básica de água.",
+    "energy_type": "water",
+    "is_basic": true
+  },
+  {
+    "id": "psychic_energy",
+    "type": "energy",
+    "name": "Energia Psíquica",
+    "description": "Energia básica psíquica.",
+    "energy_type": "psychic",
+    "is_basic": true
+  }
+]

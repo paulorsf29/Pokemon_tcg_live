@@ -1,0 +1,95 @@
+[
+  {
+    "id": "potion",
+    "type": "item",
+    "name": "Potion",
+    "description": "Cura 30 de dano do seu Pokémon Ativo.",
+    "abilities": [
+      {
+        "name": "curar_pokemon_ativo",
+        "effects": [
+          {
+            "type": "curar",
+            "value": 30,
+            "target": {
+              "type": "pokemon_ativo",
+              "owner": "self"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "super_potion",
+    "type": "item",
+    "name": "Super Potion",
+    "description": "Cura 50 de dano do seu Pokémon Ativo.",
+    "abilities": [
+      {
+        "name": "curar_muito",
+        "effects": [
+          {
+            "type": "curar",
+            "value": 50,
+            "target": {
+              "type": "pokemon_ativo",
+              "owner": "self"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "power_band",
+    "type": "item",
+    "name": "Power Band",
+    "description": "Aumenta o dano do seu próximo ataque.",
+    "abilities": [
+      {
+        "name": "bonus_de_dano",
+        "effects": [
+          {
+            "type": "reducao_dano",
+            "value": 0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rare_candy",
+    "type": "item",
+    "name": "Rare Candy",
+    "description": "Compre 1 carta.",
+    "abilities": [
+      {
+        "name": "comprar_uma",
+        "effects": [
+          {
+            "type": "comprar_cartas",
+            "quantity": 1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "burn_boost",
+    "type": "item",
+    "name": "Burn Boost",
+    "description": "Compre 1 carta para acelerar sua ofensiva.",
+    "abilities": [
+      {
+        "name": "impulso_de_compra",
+        "effects": [
+          {
+            "type": "comprar_cartas",
+            "quantity": 1
+          }
+        ]
+      }
+    ]
+  }
+]

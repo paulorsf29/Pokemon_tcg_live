@@ -1,0 +1,304 @@
+[
+  {
+    "id": "pikachu_ex",
+    "type": "pokemon",
+    "name": "Pikachu EX",
+    "description": "Pokémon elétrico agressivo.",
+    "hp": 220,
+    "attacks": [
+      {
+        "name": "Surto Trovejante",
+        "costs": [
+          {
+            "type": "energia_anexada",
+            "quantity": 2
+          },
+          {
+            "type": "descartar_selecionadas",
+            "quantity": 2,
+            "store_as": "energias_descartadas",
+            "selector": {
+              "type": "cartas_anexadas",
+              "owner": "self",
+              "card_types": ["energy"]
+            }
+          }
+        ],
+        "effects": [
+          {
+            "type": "dano_por_descarte",
+            "base": 20,
+            "multiplier": 40,
+            "count_from": "energias_descartadas",
+            "target": {
+              "type": "pokemon_ativo",
+              "owner": "opponent"
+            }
+          }
+        ]
+      }
+    ],
+    "abilities": []
+  },
+  {
+    "id": "raichu",
+    "type": "pokemon",
+    "name": "Raichu",
+    "description": "Pokémon elétrico veloz.",
+    "hp": 150,
+    "attacks": [
+      {
+        "name": "Choque Veloz",
+        "costs": [
+          {
+            "type": "energia_anexada",
+            "quantity": 1
+          }
+        ],
+        "effects": [
+          {
+            "type": "causar_dano",
+            "value": 50,
+            "target": {
+              "type": "pokemon_ativo",
+              "owner": "opponent"
+            }
+          }
+        ]
+      }
+    ],
+    "abilities": []
+  },
+  {
+    "id": "charizard_ex",
+    "type": "pokemon",
+    "name": "Charizard EX",
+    "description": "Pokémon de fogo devastador.",
+    "hp": 330,
+    "attacks": [
+      {
+        "name": "Brasa Suprema",
+        "costs": [
+          {
+            "type": "energia_anexada",
+            "quantity": 3
+          }
+        ],
+        "effects": [
+          {
+            "type": "causar_dano",
+            "value": 80,
+            "target": {
+              "type": "pokemon_ativo",
+              "owner": "opponent"
+            }
+          }
+        ]
+      }
+    ],
+    "abilities": []
+  },
+  {
+    "id": "charmander",
+    "type": "pokemon",
+    "name": "Charmander",
+    "description": "Pokémon de fogo básico.",
+    "hp": 70,
+    "attacks": [
+      {
+        "name": "Faísca",
+        "costs": [
+          {
+            "type": "energia_anexada",
+            "quantity": 1
+          }
+        ],
+        "effects": [
+          {
+            "type": "causar_dano",
+            "value": 20,
+            "target": {
+              "type": "pokemon_ativo",
+              "owner": "opponent"
+            }
+          }
+        ]
+      }
+    ],
+    "abilities": []
+  },
+  {
+    "id": "chien_pao",
+    "type": "pokemon",
+    "name": "Chien-Pao",
+    "description": "Pokémon aquático lendário.",
+    "hp": 230,
+    "attacks": [
+      {
+        "name": "Lâmina Gélida",
+        "costs": [
+          {
+            "type": "energia_anexada",
+            "quantity": 2
+          }
+        ],
+        "effects": [
+          {
+            "type": "causar_dano",
+            "value": 70,
+            "target": {
+              "type": "pokemon_ativo",
+              "owner": "opponent"
+            }
+          }
+        ]
+      }
+    ],
+    "abilities": []
+  },
+  {
+    "id": "frigibax",
+    "type": "pokemon",
+    "name": "Frigibax",
+    "description": "Pokémon aquático básico.",
+    "hp": 70,
+    "attacks": [
+      {
+        "name": "Gelo Fraco",
+        "costs": [
+          {
+            "type": "energia_anexada",
+            "quantity": 1
+          }
+        ],
+        "effects": [
+          {
+            "type": "causar_dano",
+            "value": 20,
+            "target": {
+              "type": "pokemon_ativo",
+              "owner": "opponent"
+            }
+          }
+        ]
+      }
+    ],
+    "abilities": []
+  },
+  {
+    "id": "miraidon",
+    "type": "pokemon",
+    "name": "Miraidon",
+    "description": "Pokémon elétrico futurista.",
+    "hp": 220,
+    "attacks": [
+      {
+        "name": "Pulso Íon",
+        "costs": [
+          {
+            "type": "energia_anexada",
+            "quantity": 2
+          }
+        ],
+        "effects": [
+          {
+            "type": "causar_dano",
+            "value": 65,
+            "target": {
+              "type": "pokemon_ativo",
+              "owner": "opponent"
+            }
+          }
+        ]
+      }
+    ],
+    "abilities": []
+  },
+  {
+    "id": "regieleki",
+    "type": "pokemon",
+    "name": "Regieleki",
+    "description": "Pokémon elétrico rápido.",
+    "hp": 140,
+    "attacks": [
+      {
+        "name": "Choque Relâmpago",
+        "costs": [
+          {
+            "type": "energia_anexada",
+            "quantity": 1
+          }
+        ],
+        "effects": [
+          {
+            "type": "causar_dano",
+            "value": 45,
+            "target": {
+              "type": "pokemon_ativo",
+              "owner": "opponent"
+            }
+          }
+        ]
+      }
+    ],
+    "abilities": []
+  },
+  {
+    "id": "gardevoir",
+    "type": "pokemon",
+    "name": "Gardevoir",
+    "description": "Pokémon psíquico refinado.",
+    "hp": 310,
+    "attacks": [
+      {
+        "name": "Pulso Mental",
+        "costs": [
+          {
+            "type": "energia_anexada",
+            "quantity": 3
+          }
+        ],
+        "effects": [
+          {
+            "type": "causar_dano",
+            "value": 75,
+            "target": {
+              "type": "pokemon_ativo",
+              "owner": "opponent"
+            }
+          }
+        ]
+      }
+    ],
+    "abilities": []
+  },
+  {
+    "id": "ralts",
+    "type": "pokemon",
+    "name": "Ralts",
+    "description": "Pokémon psíquico básico.",
+    "hp": 60,
+    "attacks": [
+      {
+        "name": "Toque Psíquico",
+        "costs": [
+          {
+            "type": "energia_anexada",
+            "quantity": 1
+          }
+        ],
+        "effects": [
+          {
+            "type": "causar_dano",
+            "value": 15,
+            "target": {
+              "type": "pokemon_ativo",
+              "owner": "opponent"
+            }
+          }
+        ]
+      }
+    ],
+    "abilities": []
+  }
+]

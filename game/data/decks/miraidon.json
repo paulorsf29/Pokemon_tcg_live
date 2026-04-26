@@ -1,0 +1,14 @@
+{
+  "name": "Deck Miraidon",
+  "cards": [
+    { "card_id": "miraidon", "quantity": 1 },
+    { "card_id": "regieleki", "quantity": 1 },
+    { "card_id": "potion", "quantity": 1 },
+    { "card_id": "super_potion", "quantity": 1 },
+    { "card_id": "professor", "quantity": 1 },
+    { "card_id": "power_band", "quantity": 1 },
+    { "card_id": "lucky_prize", "quantity": 1 },
+    { "card_id": "barrier", "quantity": 1 },
+    { "card_id": "electric_energy", "quantity": 6 }
+  ]
+}

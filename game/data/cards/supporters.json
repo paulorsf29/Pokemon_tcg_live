@@ -1,0 +1,53 @@
+[
+  {
+    "id": "lucky_prize",
+    "type": "supporter",
+    "name": "Lucky Prize",
+    "description": "Pegue uma carta de prêmio extra.",
+    "abilities": [
+      {
+        "name": "premio_extra",
+        "effects": [
+          {
+            "type": "premio_extra",
+            "quantity": 1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "professor",
+    "type": "supporter",
+    "name": "Professor",
+    "description": "Compre 2 cartas.",
+    "abilities": [
+      {
+        "name": "comprar_duas",
+        "effects": [
+          {
+            "type": "comprar_cartas",
+            "quantity": 2
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "barrier",
+    "type": "supporter",
+    "name": "Barrier",
+    "description": "Reduz 20 de dano recebido no próximo ataque.",
+    "abilities": [
+      {
+        "name": "barreira",
+        "effects": [
+          {
+            "type": "reducao_dano",
+            "value": 20
+          }
+        ]
+      }
+    ]
+  }
+]

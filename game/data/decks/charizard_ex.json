@@ -1,0 +1,14 @@
+{
+  "name": "Deck Charizard EX",
+  "cards": [
+    { "card_id": "charizard_ex", "quantity": 1 },
+    { "card_id": "charmander", "quantity": 1 },
+    { "card_id": "rare_candy", "quantity": 1 },
+    { "card_id": "potion", "quantity": 1 },
+    { "card_id": "burn_boost", "quantity": 1 },
+    { "card_id": "professor", "quantity": 1 },
+    { "card_id": "barrier", "quantity": 1 },
+    { "card_id": "lucky_prize", "quantity": 1 },
+    { "card_id": "fire_energy", "quantity": 6 }
+  ]
+}

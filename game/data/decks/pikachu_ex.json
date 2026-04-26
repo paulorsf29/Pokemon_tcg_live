@@ -1,0 +1,14 @@
+{
+  "name": "Deck Pikachu EX",
+  "cards": [
+    { "card_id": "pikachu_ex", "quantity": 1 },
+    { "card_id": "raichu", "quantity": 1 },
+    { "card_id": "potion", "quantity": 2 },
+    { "card_id": "super_potion", "quantity": 1 },
+    { "card_id": "professor", "quantity": 1 },
+    { "card_id": "power_band", "quantity": 1 },
+    { "card_id": "lucky_prize", "quantity": 1 },
+    { "card_id": "barrier", "quantity": 1 },
+    { "card_id": "electric_energy", "quantity": 6 }
+  ]
+}
