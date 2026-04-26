@@ -1,3 +1,6 @@
+from game.core.base.habilidade.AumentarDano import AumentarDanoHabilidade
+from game.core.base.habilidade.CurarPokemon import CurarPokemonHabilidade
+
 class HabilidadesService:
     _HABILIDADES = None
 
@@ -9,7 +12,7 @@ class HabilidadesService:
         if HabilidadesService._HABILIDADES is None:
             habilidades = [
                 CurarPokemonHabilidade(),
-                ComprarPremioExtraHabilidade(),
+                #ComprarPremioExtraHabilidade(),
                 AumentarDanoHabilidade(),
                 BloquearPremioOponenteHabilidade(),
                 ReduzirDanoProximoTurnoHabilidade(),
