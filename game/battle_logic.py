@@ -81,10 +81,10 @@ class BattleLogic:
 
     def use_card_from_hand(self, index):
         if self.current_turn != "player" or self.winner:
-            return False, "Nao e o turno do jogador"
+            return False, "Nao e o turno do jogador", None
 
         if index < 0 or index >= len(self.player_hand):
-            return False, "Carta invalida"
+            return False, "Carta invalida", None
 
         card = self.player_hand.pop(index)
 
@@ -102,23 +102,33 @@ class BattleLogic:
                 self.player_active["damage"] += card["damage"]
 
             self.player_discard.append(card)
-            return True, f"Carta {card['name']} usada"
+            return True, f"Carta {card['name']} usada", card
 
         self.player_hand.insert(index, card)
-        return False, "Essa carta nao pode ser usada agora"
+        return False, "Essa carta nao pode ser usada agora", None
 
     def player_attack(self):
         if self.current_turn != "player" or self.winner:
-            return False, "Nao e o turno do jogador"
+            return {"ok": False, "message": "Nao e o turno do jogador"}
+
         if not self.player_active or not self.opponent_active:
-            return False, "Pokemon ativo ausente"
+            return {"ok": False, "message": "Pokemon ativo ausente"}
 
         damage = self.player_active["damage"]
         reduced = max(0, damage - self.opponent_shield)
         self.opponent_shield = 0
         self.opponent_active["hp"] -= reduced
 
+        result = {
+            "ok": True,
+            "message": f"Ataque causou {reduced} de dano",
+            "target": "opponent_active",
+            "damage": reduced,
+            "ko": False
+        }
+
         if self.opponent_active["hp"] <= 0:
+            result["ko"] = True
             self.opponent_discard.append(self.opponent_active)
             self.opponent_active = self.find_first_pokemon("opponent")
 
@@ -128,35 +138,29 @@ class BattleLogic:
 
             if self.player_prizes_taken >= 6:
                 self.check_winner("player", "Coletou 6 premios")
-                return True, "Vitoria por premios"
 
-            if self.opponent_active is None:
+            elif self.opponent_active is None:
                 self.check_winner("player", "Oponente sem pokemon no campo")
-                return True, "Vitoria por nocaute final"
 
         self.end_turn()
-        return True, f"Ataque causou {reduced} de dano"
+        return result
 
     def opponent_turn_ai(self):
         if self.current_turn != "opponent" or self.winner:
-            return
+            return None
 
-        played = False
-
-        for i, card in enumerate(self.opponent_hand[:]):
+        for card in self.opponent_hand[:]:
             real_index = self.opponent_hand.index(card)
             if card["type"] in ["item", "supporter"]:
                 if card["heal"] > 0 and self.opponent_active and self.opponent_active["hp"] < self.opponent_active["max_hp"]:
                     self.apply_opponent_card(real_index)
-                    played = True
                     break
                 elif card["damage"] > 0 or card["draw"] > 0 or card["prize_bonus"] > 0 or card["shield"] > 0:
                     self.apply_opponent_card(real_index)
-                    played = True
                     break
 
         if self.winner:
-            return
+            return None
 
         if self.opponent_active and self.player_active:
             damage = self.opponent_active["damage"]
@@ -164,7 +168,14 @@ class BattleLogic:
             self.player_shield = 0
             self.player_active["hp"] -= reduced
 
+            result = {
+                "target": "player_active",
+                "damage": reduced,
+                "ko": False
+            }
+
             if self.player_active["hp"] <= 0:
+                result["ko"] = True
                 self.player_discard.append(self.player_active)
                 self.player_active = self.find_first_pokemon("player")
                 prizes = 1 + self.opponent_bonus_prize
@@ -173,13 +184,13 @@ class BattleLogic:
 
                 if self.opponent_prizes_taken >= 6:
                     self.check_winner("opponent", "Oponente coletou 6 premios")
-                    return
-
-                if self.player_active is None:
+                elif self.player_active is None:
                     self.check_winner("opponent", "Jogador sem pokemon no campo")
-                    return
 
-        self.end_turn()
+            self.end_turn()
+            return result
+
+        return None
 
     def apply_opponent_card(self, index):
         card = self.opponent_hand.pop(index)

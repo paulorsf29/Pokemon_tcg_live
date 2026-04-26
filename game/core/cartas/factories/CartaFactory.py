@@ -1,12 +1,11 @@
 from game.core.base.carta.pokemon.CartaPokemon import CartaPokemon
 from game.core.base.carta.apoiador.CartaApoiadorCura import CartaApoiadorCura
-from game.core.base.carta.apoiador.CartaApoiadorBloqueioPremio import CartaApoiadorPremioExtra
+from game.core.base.carta.apoiador.CartaApoiadorPremio import CartaApoiadorPremioExtra
 from game.core.base.carta.item.CartaItemCura import CartaItemCura
 from game.core.base.carta.item.CartaItemBuffDano import CartaItemBuffDano
 from game.core.base.carta.apoiador.CartaApoiadorBloqueioPremio import CartaApoiadorBloqueioPremio
 from game.core.base.carta.apoiador.CartaApoiadorReducaoDano import CartaApoiadorReducaoDano
 from game.core.habilidades.services.HabilidadesService import HabilidadesService
-
 
 class CartaFactory:
     def __new__(cls, *args, **kwargs):
