@@ -1,5 +1,5 @@
 from typing import final
-from .carta_item_base import CartaItemBase
+from .base.CartaItemBase import CartaItemBase
 
 
 @final

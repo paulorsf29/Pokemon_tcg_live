@@ -1,4 +1,4 @@
-from .carta_base import CartaBase
+from ...base.CartaBase import CartaBase
 
 
 class CartaItemBase(CartaBase):

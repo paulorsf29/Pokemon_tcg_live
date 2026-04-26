@@ -1,5 +1,5 @@
 from typing import final
-from .habilidade_base import HabilidadeBase
+from ..habilidade.base.HabilidadeBase import HabilidadeBase
 
 
 @final

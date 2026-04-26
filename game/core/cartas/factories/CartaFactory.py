@@ -1,11 +1,11 @@
-from core.cartas.carta_pokemon import CartaPokemon
-from core.cartas.carta_apoiador_cura import CartaApoiadorCura
-from core.cartas.carta_apoiador_premio_extra import CartaApoiadorPremioExtra
-from core.cartas.carta_item_cura import CartaItemCura
-from core.cartas.carta_item_buff_dano import CartaItemBuffDano
-from core.cartas.carta_apoiador_bloqueio_premio import CartaApoiadorBloqueioPremio
-from core.cartas.carta_apoiador_reducao_dano import CartaApoiadorReducaoDano
-from core.services.habilidades_service import HabilidadesService
+from game.core.base.carta.pokemon.CartaPokemon import CartaPokemon
+from game.core.base.carta.apoiador.CartaApoiadorCura import CartaApoiadorCura
+#from game.core.base.carta.apoiador.CartaApoiadorBloqueioPremio import CartaApoiadorPremioExtra
+from game.core.base.carta.item.CartaItemCura import CartaItemCura
+from game.core.base.carta.item.CartaItemBuffDano import CartaItemBuffDano
+from game.core.base.carta.apoiador.CartaApoiadorBloqueioPremio import CartaApoiadorBloqueioPremio
+from game.core.base.carta.apoiador.CartaApoiadorReducaoDano import CartaApoiadorReducaoDano
+from game.core.habilidades.services.HabilidadesService import HabilidadesService
 
 
 class CartaFactory:

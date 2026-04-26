@@ -1,5 +1,5 @@
 from typing import final
-from .carta_apoiador_base import CartaApoiadorBase
+from .base.CartaApoiadorBase import CartaApoiadorBase
 
 
 @final
