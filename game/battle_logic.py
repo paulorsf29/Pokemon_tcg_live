@@ -1,11 +1,4 @@
-"""
-BattleLogic adaptado para usar o pipeline novo (JsonDeckProvider + Strategies)
-mas expondo a mão/cartas como dicts para o battle_scene continuar funcionando.
 
-Ponte: cartas-objeto (CartaPokemon, CartaItemGenerico, etc.) -> dicts
-com as chaves esperadas pelo battle_scene (name, type, hp, damage, heal,
-draw, prize_bonus, shield).
-"""
 
 import random
 from settings import TURN_TIME_LIMIT, MAX_INACTIVE_TURNS
@@ -18,13 +11,7 @@ from game.core.strategies.condicoes.standard_win_condition import StandardWinCon
 from game.strategies.ai.simple_ai_strategy import SimpleAIStrategy
 from game.strategies.ai.aggressive_ai_strategy import AggressiveAIStrategy
 
-
-# ──────────────────────────────────────────────
-# Adapter: converte Carta-objeto em dict legado
-# ──────────────────────────────────────────────
-
 def _carta_para_dict(carta) -> dict:
-    """Converte uma carta-objeto do core para o dict que o battle_scene espera."""
     tipo_valor = getattr(carta.tipo, "value", str(carta.tipo))
     base = {
         "name": carta.nome,
@@ -66,7 +53,6 @@ def _carta_para_dict(carta) -> dict:
 
 
 def _extrair_dano_do_ataque(ataque) -> int:
-    """Soma todos os efeitos de dano dos efeitos do ataque."""
     total = 0
     for efeito in getattr(ataque, "efeitos", []):
         cls_name = type(efeito).__name__
@@ -79,14 +65,7 @@ def _extrair_dano_do_ataque(ataque) -> int:
             total += base_v + mult
     return total
 
-
-# ──────────────────────────────────────────────
-# BattleLogic (interface legada de dicts)
-# ──────────────────────────────────────────────
-
 class BattleLogic:
-    """Lógica de batalha que usa o DeckProvider novo internamente,
-    mas expõe a mão/cartas como dicts para a UI."""
 
     def __init__(
         self,
@@ -136,10 +115,6 @@ class BattleLogic:
 
         self.setup_game()
 
-    # ──────────────────────────────────────────
-    # Setup / draws
-    # ──────────────────────────────────────────
-
     def setup_game(self):
         for _ in range(5):
             self.draw_card("player")
@@ -148,8 +123,6 @@ class BattleLogic:
         self.player_active = self._garantir_pokemon_inicial("player")
         self.opponent_active = self._garantir_pokemon_inicial("opponent")
 
-        # Mesmo após "mulligan", se o deck for inviável (nenhum Pokémon),
-        # encerra a partida.
         if self.player_active is None:
             self.check_winner("opponent", "Jogador sem pokemon inicial")
         if self.opponent_active is None:
@@ -202,9 +175,6 @@ class BattleLogic:
                 }
         return None
 
-    # ──────────────────────────────────────────
-    # Ações do jogador
-    # ──────────────────────────────────────────
 
     def use_card_from_hand(self, index):
         if self.current_turn != "player" or self.winner:
