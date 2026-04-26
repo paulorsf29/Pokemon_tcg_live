@@ -1,11 +1,11 @@
 from game.core.base.carta.pokemon.CartaPokemon import CartaPokemon
 from game.core.base.carta.apoiador.CartaApoiadorCura import CartaApoiadorCura
-#from game.core.base.carta.apoiador.CartaApoiadorPremio import CartaApoiadorPremioExtra
 from game.core.base.carta.item.CartaItemCura import CartaItemCura
 from game.core.base.carta.item.CartaItemBuffDano import CartaItemBuffDano
 from game.core.base.carta.apoiador.CartaApoiadorBloqueioPremio import CartaApoiadorBloqueioPremio
 from game.core.base.carta.apoiador.CartaApoiadorReducaoDano import CartaApoiadorReducaoDano
 from game.core.habilidades.services.HabilidadesService import HabilidadesService
+
 
 class CartaFactory:
     def __new__(cls, *args, **kwargs):
@@ -18,6 +18,7 @@ class CartaFactory:
         descricao: str,
         hp: int,
         habilidades_associadas: tuple[str, ...] = (),
+        dano: int = 60,
     ) -> CartaPokemon:
         return CartaPokemon(
             id_carta=id_carta,
@@ -26,17 +27,13 @@ class CartaFactory:
             hp=hp,
             habilidades_associadas=habilidades_associadas,
             habilidades=HabilidadesService.obter(),
+            dano=dano,
         )
 
     @staticmethod
     def criar_apoiador_cura(id_carta: str, nome: str, descricao: str) -> CartaApoiadorCura:
         return CartaApoiadorCura(id_carta, nome, descricao, HabilidadesService.obter())
 
-    """
-    @staticmethod
-    def criar_apoiador_premio_extra(id_carta: str, nome: str, descricao: str) -> CartaApoiadorPremioExtra:
-        return CartaApoiadorPremioExtra(id_carta, nome, descricao, HabilidadesService.obter())
-"""
     @staticmethod
     def criar_item_cura(id_carta: str, nome: str, descricao: str) -> CartaItemCura:
         return CartaItemCura(id_carta, nome, descricao, HabilidadesService.obter())

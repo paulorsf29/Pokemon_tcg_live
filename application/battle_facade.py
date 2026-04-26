@@ -1,7 +1,11 @@
 import random
 from dataclasses import dataclass
+
+from settings import TURN_TIME_LIMIT, MAX_INACTIVE_TURNS
 from game.core.modelos.jogador.Jogador import Jogador
 from game.core.cartas.factories.CartaFactory import CartaFactory
+from game.core.habilidades.EfeitoContexto import EfeitoContexto
+from game.core.habilidades.services.HabilidadesService import HabilidadesService
 
 
 @dataclass(slots=True)
@@ -20,14 +24,13 @@ class BattleFacade:
         self.oponente = Jogador(nickname="Oponente")
 
         self.turno_atual = "player"
-        self.turn_time_limit = 30
+        self.turn_time_limit = TURN_TIME_LIMIT
         self.turn_timer = self.turn_time_limit
-        self.max_turnos_inativo = 2
+        self.max_turnos_inativo = MAX_INACTIVE_TURNS
 
         self.vencedor = None
         self.motivo_vitoria = None
-
-        self.log = []
+        self.habilidades = HabilidadesService.obter()
 
         self._montar_decks(deck_name)
         self._setup_inicial()
@@ -35,31 +38,30 @@ class BattleFacade:
     def _montar_decks(self, deck_name: str):
         self.jogador.deck = self._criar_deck(deck_name)
         self.oponente.deck = self._criar_deck("charizard")
-
         random.shuffle(self.jogador.deck)
         random.shuffle(self.oponente.deck)
 
     def _criar_deck(self, deck_name: str):
-        if deck_name == "charizard":
+        if deck_name.lower() == "charizard":
             return [
-                CartaFactory.criar_pokemon("pz001", "Charizard EX", "Pokemon agressivo de fogo", 330, ("ataque_base",)),
-                CartaFactory.criar_pokemon("pz002", "Charmander", "Pokemon basico", 70, ("ataque_fraco",)),
+                CartaFactory.criar_pokemon("pz001", "Charizard EX", "Pokemon agressivo de fogo", 330, ("AumentarDano",), dano=90),
+                CartaFactory.criar_pokemon("pz002", "Charmander", "Pokemon basico", 70, (), dano=30),
                 CartaFactory.criar_item_cura("it001", "Potion", "Cura 30"),
                 CartaFactory.criar_item_buff_dano("it002", "Power Band", "Aumenta dano"),
                 CartaFactory.criar_apoiador_cura("ap001", "Nurse", "Cura pokemon"),
-                CartaFactory.criar_apoiador_reducao_dano("ap002", "Shield Coach", "Reduz dano"),
-                CartaFactory.criar_apoiador_bloqueio_premio("ap003", "Judge Wall", "Bloqueia premio"),
+                CartaFactory.criar_apoiador_bloqueio_premio("ap002", "Judge Wall", "Bloqueia premio"),
+                CartaFactory.criar_apoiador_reducao_dano("ap003", "Shield Coach", "Reduz dano"),
             ]
-        else:
-            return [
-                CartaFactory.criar_pokemon("pk001", "Pikachu EX", "Pokemon eletrico rapido", 220, ("ataque_base",)),
-                CartaFactory.criar_pokemon("pk002", "Raichu", "Pokemon evoluido", 150, ("ataque_fraco",)),
-                CartaFactory.criar_item_cura("it003", "Potion", "Cura 30"),
-                CartaFactory.criar_item_buff_dano("it004", "Power Band", "Aumenta dano"),
-                CartaFactory.criar_apoiador_cura("ap004", "Medic", "Cura pokemon"),
-                CartaFactory.criar_apoiador_reducao_dano("ap005", "Defender", "Reduz dano"),
-                CartaFactory.criar_apoiador_bloqueio_premio("ap006", "Stop Prize", "Bloqueia premio"),
-            ]
+
+        return [
+            CartaFactory.criar_pokemon("pk001", "Pikachu EX", "Pokemon eletrico rapido", 220, ("AumentarDano",), dano=60),
+            CartaFactory.criar_pokemon("pk002", "Raichu", "Pokemon evoluido", 150, (), dano=70),
+            CartaFactory.criar_item_cura("it003", "Potion", "Cura 30"),
+            CartaFactory.criar_item_buff_dano("it004", "Power Band", "Aumenta dano"),
+            CartaFactory.criar_apoiador_cura("ap004", "Medic", "Cura pokemon"),
+            CartaFactory.criar_apoiador_bloqueio_premio("ap005", "Stop Prize", "Bloqueia premio"),
+            CartaFactory.criar_apoiador_reducao_dano("ap006", "Defender", "Reduz dano"),
+        ]
 
     def _setup_inicial(self):
         for _ in range(5):
@@ -76,7 +78,7 @@ class BattleFacade:
 
     def _retirar_primeiro_pokemon_da_mao(self, jogador: Jogador):
         for carta in jogador.mao:
-            if carta.__class__.__name__ == "CartaPokemon":
+            if "CartaPokemon" in carta.__class__.__name__:
                 jogador.mao.remove(carta)
                 return carta
         return None
@@ -93,27 +95,20 @@ class BattleFacade:
         jogador.mao.append(carta)
         return carta
 
-    def nome_carta(self, carta):
-        return getattr(carta, "nome", carta.__class__.__name__)
+    def _executar_habilidade(self, nome_habilidade: str, jogador_origem=None, jogador_alvo=None, pokemon_alvo=None, carta=None, valor=0):
+        habilidade = self.habilidades.get(nome_habilidade)
+        if habilidade is None:
+            return False
 
-    def descricao_carta(self, carta):
-        return getattr(carta, "descricao", "")
-
-    def hp_carta(self, carta):
-        return getattr(carta, "hp", 0)
-
-    def tipo_carta(self, carta):
-        nome_classe = carta.__class__.__name__.lower()
-        if "pokemon" in nome_classe:
-            return "pokemon"
-        if "apoiador" in nome_classe:
-            return "apoiador"
-        if "item" in nome_classe:
-            return "item"
-        return "carta"
-
-    def dano_base_pokemon(self, carta):
-        return getattr(carta, "dano", 60)
+        contexto = EfeitoContexto(
+            jogador_origem=jogador_origem,
+            jogador_alvo=jogador_alvo,
+            pokemon_alvo=pokemon_alvo,
+            carta=carta,
+            valor=valor,
+        )
+        habilidade.executar(contexto)
+        return True
 
     def usar_carta_da_mao(self, index: int) -> BattleActionResult:
         if self.turno_atual != "player":
@@ -122,37 +117,57 @@ class BattleFacade:
         if index < 0 or index >= len(self.jogador.mao):
             return BattleActionResult(False, "Indice invalido")
 
-        carta = self.jogador.mao.pop(index)
+        carta = self.jogador.mao[index]
         nome_classe = carta.__class__.__name__
 
-        if "Cura" in nome_classe and self.jogador.pokemon_ativo:
-            hp_atual = getattr(self.jogador.pokemon_ativo, "hp", 0)
-            setattr(self.jogador.pokemon_ativo, "hp", hp_atual + 30)
-            self.log.append(f"{self.nome_carta(carta)} curou o pokemon ativo.")
-            self._registrar_acao()
-            return BattleActionResult(True, f"{self.nome_carta(carta)} usada")
+        ok = False
 
-        if "BuffDano" in nome_classe and self.jogador.pokemon_ativo:
-            dano_atual = getattr(self.jogador.pokemon_ativo, "dano", 60)
-            setattr(self.jogador.pokemon_ativo, "dano", dano_atual + 20)
-            self.log.append(f"{self.nome_carta(carta)} aumentou o dano.")
-            self._registrar_acao()
-            return BattleActionResult(True, f"{self.nome_carta(carta)} usada")
+        if "ItemCura" in nome_classe or "ApoiadorCura" in nome_classe:
+            ok = self._executar_habilidade(
+                "CurarPokemon",
+                jogador_origem=self.jogador,
+                jogador_alvo=self.jogador,
+                pokemon_alvo=self.jogador.pokemon_ativo,
+                carta=carta,
+                valor=30,
+            )
 
-        if "BloqueioPremio" in nome_classe:
-            self.jogador.bloqueia_premio_do_oponente_no_proximo_nocaute = True
-            self.log.append(f"{self.nome_carta(carta)} ativou bloqueio de premio.")
-            self._registrar_acao()
-            return BattleActionResult(True, f"{self.nome_carta(carta)} usada")
+        elif "ItemBuffDano" in nome_classe:
+            ok = self._executar_habilidade(
+                "AumentarDano",
+                jogador_origem=self.jogador,
+                jogador_alvo=self.jogador,
+                pokemon_alvo=self.jogador.pokemon_ativo,
+                carta=carta,
+                valor=20,
+            )
 
-        if "ReducaoDano" in nome_classe:
-            self.jogador.modificador_premio_extra_ativo = True
-            self.log.append(f"{self.nome_carta(carta)} ativou protecao.")
-            self._registrar_acao()
-            return BattleActionResult(True, f"{self.nome_carta(carta)} usada")
+        elif "BloqueioPremio" in nome_classe:
+            ok = self._executar_habilidade(
+                "BloquearPremioOponente",
+                jogador_origem=self.jogador,
+                jogador_alvo=self.jogador,
+                pokemon_alvo=self.jogador.pokemon_ativo,
+                carta=carta,
+                valor=0,
+            )
 
-        self.jogador.mao.insert(index, carta)
-        return BattleActionResult(False, "Essa carta nao pode ser usada agora")
+        elif "ReducaoDano" in nome_classe:
+            ok = self._executar_habilidade(
+                "ReduzirDanoProximoTurno",
+                jogador_origem=self.jogador,
+                jogador_alvo=self.jogador,
+                pokemon_alvo=self.jogador.pokemon_ativo,
+                carta=carta,
+                valor=0,
+            )
+
+        if not ok:
+            return BattleActionResult(False, "Essa carta nao pode ser usada agora")
+
+        self.jogador.mao.pop(index)
+        self._registrar_acao()
+        return BattleActionResult(True, f"{self.nome_carta(carta)} usada")
 
     def atacar(self) -> BattleActionResult:
         if self.turno_atual != "player":
@@ -161,14 +176,17 @@ class BattleFacade:
         if self.jogador.pokemon_ativo is None or self.oponente.pokemon_ativo is None:
             return BattleActionResult(False, "Pokemon ativo ausente")
 
-        dano = getattr(self.jogador.pokemon_ativo, "dano", 60)
-        hp_oponente = getattr(self.oponente.pokemon_ativo, "hp", 0)
-        novo_hp = hp_oponente - dano
-        setattr(self.oponente.pokemon_ativo, "hp", novo_hp)
+        dano = self.jogador.pokemon_ativo.dano
 
-        ko = novo_hp <= 0
+        if self.oponente.reducao_dano_proximo_turno_ativa:
+            dano = max(0, dano - 20)
+            self.oponente.reducao_dano_proximo_turno_ativa = False
+
+        self.oponente.pokemon_ativo.receber_dano(dano)
+
+        ko = self.oponente.pokemon_ativo.esta_nocauteado()
         if ko:
-            self._processar_nocaute(atacante=self.jogador, defensor=self.oponente, lado_vencedor="player")
+            self._processar_nocaute(self.jogador, self.oponente, "player")
 
         self._registrar_acao()
         self.encerrar_turno()
@@ -179,7 +197,7 @@ class BattleFacade:
             target="opponent_active",
             ko=ko,
             winner=self.vencedor,
-            reason=self.motivo_vitoria
+            reason=self.motivo_vitoria,
         )
 
     def turno_ia(self) -> BattleActionResult | None:
@@ -189,14 +207,17 @@ class BattleFacade:
         if self.oponente.pokemon_ativo is None or self.jogador.pokemon_ativo is None:
             return None
 
-        dano = getattr(self.oponente.pokemon_ativo, "dano", 50)
-        hp_jogador = getattr(self.jogador.pokemon_ativo, "hp", 0)
-        novo_hp = hp_jogador - dano
-        setattr(self.jogador.pokemon_ativo, "hp", novo_hp)
+        dano = self.oponente.pokemon_ativo.dano
 
-        ko = novo_hp <= 0
+        if self.jogador.reducao_dano_proximo_turno_ativa:
+            dano = max(0, dano - 20)
+            self.jogador.reducao_dano_proximo_turno_ativa = False
+
+        self.jogador.pokemon_ativo.receber_dano(dano)
+
+        ko = self.jogador.pokemon_ativo.esta_nocauteado()
         if ko:
-            self._processar_nocaute(atacante=self.oponente, defensor=self.jogador, lado_vencedor="opponent")
+            self._processar_nocaute(self.oponente, self.jogador, "opponent")
 
         self.encerrar_turno()
 
@@ -206,14 +227,15 @@ class BattleFacade:
             target="player_active",
             ko=ko,
             winner=self.vencedor,
-            reason=self.motivo_vitoria
+            reason=self.motivo_vitoria,
         )
 
     def _processar_nocaute(self, atacante: Jogador, defensor: Jogador, lado_vencedor: str):
-        bloquear_premio = defensor.bloqueia_premio_do_oponente_no_proximo_nocaute
-
-        if not bloquear_premio:
+        if not defensor.bloqueia_premio_do_oponente_no_proximo_nocaute:
             atacante.premios_restantes -= 1
+            if atacante.premio_extra_ativo:
+                atacante.premios_restantes -= 1
+                atacante.premio_extra_ativo = False
         else:
             defensor.bloqueia_premio_do_oponente_no_proximo_nocaute = False
 
@@ -225,7 +247,6 @@ class BattleFacade:
 
         if defensor.pokemon_ativo is None:
             self._definir_vencedor(lado_vencedor, "Pokemon ativo derrotado sem reserva")
-            return
 
     def atualizar_tempo(self, dt: float):
         if self.vencedor:
@@ -254,6 +275,9 @@ class BattleFacade:
         self.turn_timer = self.turn_time_limit
 
     def encerrar_turno(self):
+        if self.vencedor:
+            return
+
         self.turn_timer = self.turn_time_limit
         self.turno_atual = "opponent" if self.turno_atual == "player" else "player"
 
@@ -265,6 +289,36 @@ class BattleFacade:
     def _definir_vencedor(self, vencedor: str, motivo: str):
         self.vencedor = vencedor
         self.motivo_vitoria = motivo
+
+    def tipo_carta(self, carta):
+        nome_classe = carta.__class__.__name__.lower()
+        if "pokemon" in nome_classe:
+            return "pokemon"
+        if "apoiador" in nome_classe:
+            return "apoiador"
+        if "item" in nome_classe:
+            return "item"
+        return "carta"
+
+    def nome_carta(self, carta):
+        return getattr(carta, "nome", carta.__class__.__name__)
+
+    def descricao_carta(self, carta):
+        return getattr(carta, "descricao", "")
+
+    def _card_to_view(self, carta):
+        if carta is None:
+            return None
+
+        return {
+            "nome": self.nome_carta(carta),
+            "descricao": self.descricao_carta(carta),
+            "tipo": self.tipo_carta(carta),
+            "hp": getattr(carta, "hp", 0),
+            "max_hp": getattr(carta, "hp_max", getattr(carta, "hp", 0)),
+            "dano": getattr(carta, "dano", 0),
+            "classe": carta.__class__.__name__,
+        }
 
     def get_view_state(self):
         return {
@@ -287,19 +341,5 @@ class BattleFacade:
                 "inactive_turns": self.oponente.turnos_inativo_seguidos,
                 "pokemon_ativo": self._card_to_view(self.oponente.pokemon_ativo),
                 "mao_count": len(self.oponente.mao),
-            }
-        }
-
-    def _card_to_view(self, carta):
-        if carta is None:
-            return None
-
-        return {
-            "nome": self.nome_carta(carta),
-            "descricao": self.descricao_carta(carta),
-            "tipo": self.tipo_carta(carta),
-            "hp": getattr(carta, "hp", 0),
-            "max_hp": getattr(carta, "hp", 0),
-            "dano": getattr(carta, "dano", 60 if self.tipo_carta(carta) == "pokemon" else 0),
-            "classe": carta.__class__.__name__,
+            },
         }

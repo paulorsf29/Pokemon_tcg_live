@@ -9,6 +9,7 @@ class Jogador:
     mao: list = field(default_factory=list)
     banco: list = field(default_factory=list)
     pokemon_ativo: object | None = None
-    modificador_premio_extra_ativo: bool = False
+    premio_extra_ativo: bool = False
     bloqueia_premio_do_oponente_no_proximo_nocaute: bool = False
+    reducao_dano_proximo_turno_ativa: bool = False
     turnos_inativo_seguidos: int = 0

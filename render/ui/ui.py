@@ -55,10 +55,8 @@ class Slider:
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if knob_rect.collidepoint(event.pos):
                 self.dragging = True
-
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             self.dragging = False
-
         elif event.type == pygame.MOUSEMOTION and self.dragging:
             self.knob_x = max(self.rect.left, min(event.pos[0], self.rect.right))
             self.value = int(((self.knob_x - self.rect.x) / self.rect.w) * 100)

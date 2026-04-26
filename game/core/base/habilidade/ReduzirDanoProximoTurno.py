@@ -3,13 +3,13 @@ from game.core.base.habilidade.base.HabilidadeBase import HabilidadeBase
 
 
 @final
-class AumentarDanoHabilidade(HabilidadeBase):
+class ReduzirDanoProximoTurnoHabilidade(HabilidadeBase):
     @property
     def nome(self) -> str:
-        return "AumentarDano"
+        return "ReduzirDanoProximoTurno"
 
     def executar(self, contexto) -> None:
-        if contexto.pokemon_alvo is None:
+        if contexto.jogador_alvo is None:
             return
 
-        contexto.pokemon_alvo.dano += contexto.valor
+        contexto.jogador_alvo.reducao_dano_proximo_turno_ativa = True
