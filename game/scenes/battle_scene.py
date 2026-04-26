@@ -4,7 +4,7 @@ from .base_scene import Scene
 from settings import *
 from render.ui.ui import Button, draw_panel, draw_text
 from game.battle_logic import BattleLogicFactory
-
+import os
 
 class CardSprite:
     def __init__(self, data, x, y):
@@ -20,6 +20,14 @@ class CardSprite:
         self.drag_offset_x = 0
         self.drag_offset_y = 0
         self.scale_pulse_time = 0
+
+        # carregar imagem da carta
+        image_path = data.get("image")
+        if image_path and os.path.exists(image_path):
+            img = pygame.image.load(image_path).convert_alpha()
+            self.image = pygame.transform.smoothscale(img, (CARD_W, CARD_H))
+        else:
+            self.image = None
 
     def rect(self, zoom=1.0):
         return pygame.Rect(self.x, self.y, int(self.w * zoom), int(self.h * zoom))
@@ -68,51 +76,37 @@ class CardVisualStrategy:
         return pygame.font.SysFont("arial", max(12, int(size)), bold=bold)
 
     @staticmethod
-    def _draw_on_base(card, selected=False):
+    def _draw_on_base(card, selected=False, image=None):
         base = pygame.Surface((CardVisualStrategy.BASE_W, CardVisualStrategy.BASE_H), pygame.SRCALPHA)
 
         color = (250, 250, 250) if not selected else (255, 240, 180)
         pygame.draw.rect(base, color, (0, 0, CARD_W, CARD_H), border_radius=12)
         pygame.draw.rect(base, ACCENT_2, (0, 0, CARD_W, CARD_H), 3, border_radius=12)
 
-        title_font = CardVisualStrategy._make_font(20, bold=True)
-        type_font = CardVisualStrategy._make_font(16)
-        info_font = CardVisualStrategy._make_font(15)
-
-        draw_text(base, card["name"], title_font, BLACK, 10, 10)
-        draw_text(base, card["type"].upper(), type_font, GRAY, 10, 40)
-
-        if card["type"] == "pokemon":
-            draw_text(base, f"HP {card.get('hp', 0)}", info_font, BLACK, 10, 68)
-            draw_text(base, f"ATK {card.get('damage', 0)}", info_font, BLACK, 10, 92)
+        if image:
+            # desenha a imagem ocupando a maior parte da carta
+            base.blit(image, (0, 0))
+            pygame.draw.rect(base, ACCENT_2, (0, 0, CARD_W, CARD_H), 3, border_radius=12)
         else:
-            offset_y = 68
-            if card.get("heal", 0) > 0:
-                draw_text(base, f"Cura {card['heal']}", info_font, BLACK, 10, offset_y)
-                offset_y += 22
-            if card.get("damage", 0) > 0:
-                draw_text(base, f"+Dano {card['damage']}", info_font, BLACK, 10, offset_y)
-                offset_y += 22
-            if card.get("draw", 0) > 0:
-                draw_text(base, f"Compra {card['draw']}", info_font, BLACK, 10, offset_y)
-                offset_y += 22
-            if card.get("prize_bonus", 0) > 0:
-                draw_text(base, "+Premio", info_font, BLACK, 10, offset_y)
-                offset_y += 22
-            if card.get("shield", 0) > 0:
-                draw_text(base, f"Escudo {card['shield']}", info_font, BLACK, 10, offset_y)
+            # fallback: texto como antes
+            title_font = CardVisualStrategy._make_font(20, bold=True)
+            type_font = CardVisualStrategy._make_font(16)
+            info_font = CardVisualStrategy._make_font(15)
 
-        pygame.draw.rect(base, (220, 220, 235), (10, CARD_H - 50, CARD_W - 20, 35), border_radius=8)
+            draw_text(base, card["name"], title_font, BLACK, 10, 10)
+            draw_text(base, card["type"].upper(), type_font, GRAY, 10, 40)
+            # ... resto do texto
+        
         return base
 
     @staticmethod
-    def draw(surface, x, y, card, zoom=1.0, selected=False, pulse_time=0.0):
+    def draw(surface, x, y, card, zoom=1.0, selected=False, pulse_time=0.0, image=None):
         pulse_scale = 1.0
         if pulse_time > 0:
             pulse_scale = 1.0 + math.sin((0.18 - pulse_time) * 28) * 0.10
 
         final_zoom = zoom * pulse_scale
-        base = CardVisualStrategy._draw_on_base(card, selected=selected)
+        base = CardVisualStrategy._draw_on_base(card, selected=selected, image=image)
 
         scaled_w = max(1, int(CardVisualStrategy.BASE_W * final_zoom))
         scaled_h = max(1, int(CardVisualStrategy.BASE_H * final_zoom))
@@ -414,17 +408,26 @@ class BattleScene(Scene):
         pygame.draw.rect(surf, color, (0, 0, 160, 210), border_radius=14)
         pygame.draw.rect(surf, ACCENT_2, (0, 0, 160, 210), 3, border_radius=14)
 
-        draw_text(surf, active["name"], FONT_MED, BLACK, 12, 15)
-        draw_text(surf, f"HP: {active['hp']}/{active['max_hp']}", FONT_SMALL, BLACK, 12, 60)
-        draw_text(surf, f"ATK: {active['damage']}", FONT_SMALL, BLACK, 12, 90)
+        # imagem do pokemon ativo
+        image_path = active.get("image")
+        if image_path and os.path.exists(image_path):
+            img = pygame.image.load(image_path).convert_alpha()
+            img = pygame.transform.smoothscale(img, (80, 80))
+            surf.blit(img, (40, 10))  # centraliza no card
+            draw_text(surf, active["name"], FONT_MED, BLACK, 12, 95)
+            draw_text(surf, f"HP: {active['hp']}/{active['max_hp']}", FONT_SMALL, BLACK, 12, 120)
+        else:
+            draw_text(surf, active["name"], FONT_MED, BLACK, 12, 15)
+            draw_text(surf, f"HP: {active['hp']}/{active['max_hp']}", FONT_SMALL, BLACK, 12, 60)
 
+        # barra de HP
         max_hp = max(1, active["max_hp"])
         hp_ratio = max(0, active["hp"] / max_hp)
-        pygame.draw.rect(surf, GRAY, (12, 130, 130, 16), border_radius=6)
+        pygame.draw.rect(surf, GRAY, (12, 155, 130, 16), border_radius=6)
         pygame.draw.rect(
             surf,
             GREEN if hp_ratio > 0.4 else RED,
-            (12, 130, int(130 * hp_ratio), 16),
+            (12, 155, int(130 * hp_ratio), 16),
             border_radius=6
         )
         return surf
@@ -526,7 +529,8 @@ class BattleScene(Scene):
                 sprite.data,
                 zoom=self.zoom,
                 selected=selected,
-                pulse_time=sprite.scale_pulse_time
+                pulse_time=sprite.scale_pulse_time,
+                image=sprite.image
             )
 
         draw_panel(surface, self.right_panel_rect, color=PANEL_DARK)

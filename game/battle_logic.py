@@ -36,6 +36,7 @@ def _carta_para_dict(carta) -> dict:
         "prize_bonus": 0,
         "shield": 0,
         "state": getattr(carta, "state", "basic"),
+        "image": getattr(carta, "image", None),
         "_obj": carta,  # mantém referência caso seja útil
     }
 
@@ -168,6 +169,7 @@ class BattleLogic:
                     "max_hp": card["hp"],
                     "hp": card["hp"],
                     "damage": card["damage"],
+                    "image": card.get("image"),
                 }
         return None
 
@@ -196,6 +198,7 @@ class BattleLogic:
                     "max_hp": card["hp"],
                     "hp": card["hp"],
                     "damage": card["damage"],
+                    "image": card.get("image"),
                 }
         return None
 

@@ -25,6 +25,7 @@ class CartaFactory:
             ataques=ataques,
             habilidades=habilidades,
             state=definicao.get("State", "basic"), 
+            image=definicao.get("image", None),
         )
 
         if tipo == TipoCarta.ITEM.value:
