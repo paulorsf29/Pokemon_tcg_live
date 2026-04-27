@@ -6,6 +6,18 @@ from render.ui.ui import Button, draw_panel, draw_text
 from game.battle_logic import BattleLogicFactory
 
 
+ENERGY_COLORS = {
+    "electric": (255, 213, 64),
+    "fire": (255, 100, 70),
+    "water": (90, 170, 240),
+    "psychic": (200, 130, 220),
+}
+
+
+def _cor_da_energia(tipo):
+    return ENERGY_COLORS.get(tipo or "", (200, 200, 210))
+
+
 class CardSprite:
     def __init__(self, data, x, y):
         self.data = data
@@ -83,10 +95,10 @@ class CardVisualStrategy:
         return result + "..."
 
     @staticmethod
-    def _draw_fitted_text(base, text, color, x, y, max_width, start_size, min_size=10, bold=False):
+    def _draw_fitted_text(base, text, color, x, y, max_width, start_size, min_size=10, bold=False, center=False):
         font = CardVisualStrategy._fit_font_for_text(text, max_width, start_size, min_size, bold)
         final_text = CardVisualStrategy._ellipsize(text, font, max_width)
-        draw_text(base, final_text, font, color, x, y)
+        draw_text(base, final_text, font, color, x, y, center=center)
 
     @staticmethod
     def _draw_card_3d_face(base, rect, selected=False):
@@ -113,6 +125,33 @@ class CardVisualStrategy:
         pygame.draw.rect(base, GREEN if ratio > 0.4 else RED, (x, y, fill_w, 18), border_radius=8)
 
     @staticmethod
+    def _draw_energy_icons(base, x, y, energies, required_count=0, energy_type=None):
+        atual = len(energies or [])
+        total = max(required_count, atual)
+        if total <= 0:
+            return
+
+        for idx in range(total):
+            px = x + 12 + idx * 20
+            py = y
+            if idx < atual:
+                e_tipo = energies[idx]
+                e_cor = _cor_da_energia(e_tipo)
+                pygame.draw.circle(base, e_cor, (px, py), 8)
+                pygame.draw.circle(base, BLACK, (px, py), 8, 1)
+            else:
+                pygame.draw.circle(base, (220, 220, 220), (px, py), 8)
+                pygame.draw.circle(base, BLACK, (px, py), 8, 1)
+
+        if required_count > 0:
+            color_text = (40, 130, 60) if atual >= required_count else (180, 30, 30)
+            label = f"Energia: {atual}/{required_count}"
+            CardVisualStrategy._draw_fitted_text(base, label, color_text, x, y + 16, 150, start_size=14, min_size=10)
+            if energy_type:
+                tipo_label = f"Tipo: {energy_type}"
+                CardVisualStrategy._draw_fitted_text(base, tipo_label, BLACK, x, y + 34, 150, start_size=13, min_size=10)
+
+    @staticmethod
     def _draw_on_base(card, selected=False, w=None, h=None):
         w = w or CARD_W
         h = h or CARD_H
@@ -130,7 +169,9 @@ class CardVisualStrategy:
             base, card.get("type", "").upper(), GRAY, pad_x, 46, text_w, start_size=16, min_size=10
         )
 
-        if card.get("type") == "pokemon":
+        card_type = card.get("type")
+
+        if card_type == "pokemon":
             CardVisualStrategy._draw_fitted_text(
                 base,
                 f"HP: {card.get('hp', 0)}/{card.get('max_hp', card.get('hp', 0))}",
@@ -142,9 +183,37 @@ class CardVisualStrategy:
                 BLACK, pad_x, 112, text_w, start_size=17, min_size=10
             )
 
+            req = card.get("attack_required_count", 0)
+            tipo = card.get("attack_energy_type") or ""
+            if req > 0:
+                CardVisualStrategy._draw_fitted_text(
+                    base,
+                    f"Custo: {req} {tipo}",
+                    BLACK,
+                    pad_x,
+                    142,
+                    text_w,
+                    start_size=15,
+                    min_size=10
+                )
+
             max_hp = max(1, card.get("max_hp", card.get("hp", 1)))
             hp_ratio = max(0, min(1, card.get("hp", 0) / max_hp))
             CardVisualStrategy._draw_hp_bar(base, 12, h - 44, w - 24, hp_ratio)
+
+        elif card_type == "energy":
+            tipo = card.get("energy_type") or "electric"
+            cor = _cor_da_energia(tipo)
+
+            pygame.draw.circle(base, cor, (w // 2, 96), 26)
+            pygame.draw.circle(base, BLACK, (w // 2, 96), 26, 2)
+
+            CardVisualStrategy._draw_fitted_text(
+                base, tipo.upper(), BLACK, 18, 132, w - 36, start_size=17, min_size=10, bold=True, center=True
+            )
+
+            pygame.draw.rect(base, (220, 220, 235), (12, h - 48, w - 24, 34), border_radius=8)
+
         else:
             offset_y = 74
             lines = []
@@ -189,6 +258,28 @@ class CardVisualStrategy:
         transformed = pygame.transform.rotozoom(base, angle, final_zoom)
         rect = transformed.get_rect(center=center)
         surface.blit(transformed, rect)
+
+
+class ErrorPopupRenderStrategy:
+    @staticmethod
+    def draw(surface, mensagem: str):
+        if not mensagem:
+            return
+
+        box_w = 640
+        box_h = 90
+        x = (WIDTH - box_w) // 2
+        y = 100
+        rect = pygame.Rect(x, y, box_w, box_h)
+
+        sombra = pygame.Surface((box_w + 20, box_h + 20), pygame.SRCALPHA)
+        sombra.fill((0, 0, 0, 100))
+        surface.blit(sombra, (x - 10, y - 10))
+
+        pygame.draw.rect(surface, (60, 30, 35), rect, border_radius=12)
+        pygame.draw.rect(surface, RED, rect, 3, border_radius=12)
+        draw_text(surface, "ERRO", FONT_MED, RED, rect.centerx, rect.y + 22, center=True)
+        draw_text(surface, mensagem, FONT, WHITE, rect.centerx, rect.y + 60, center=True)
 
 
 class ActivePokemonVisual:
@@ -266,6 +357,7 @@ class BattleScene(Scene):
         self.selected_index = None
         self.opponent_delay = 0.8
         self._card_visual = CardVisualStrategy()
+        self._error_popup = ErrorPopupRenderStrategy()
 
         self.pending_result = None
         self.pending_result_delay = 0.0
@@ -487,7 +579,6 @@ class BattleScene(Scene):
         cy = self.center_battle_rect.centery + 26
         rx = self.center_battle_rect.w * 0.42
         ry = self.center_battle_rect.h * 0.26
-
         px = (pos[0] - cx) / rx
         py = (pos[1] - cy) / ry
         return (px * px + py * py) <= 1.18
@@ -635,6 +726,10 @@ class BattleScene(Scene):
         self.player_visual.update(dt)
         self.opponent_visual.update(dt)
 
+        self.logic.update_timer(dt)
+        if hasattr(self.logic, "update_error"):
+            self.logic.update_error(dt)
+
         if self.waiting_ko_animation:
             if self.player_visual.finished_fall() or self.opponent_visual.finished_fall():
                 from .result_scene import ResultScene
@@ -649,8 +744,6 @@ class BattleScene(Scene):
                 self.game.change_scene(ResultScene(self.game, result_title=title, reason=reason))
                 return
             return
-
-        self.logic.update_timer(dt)
 
         if self.logic.winner:
             self._start_ko_sequence_if_needed()
@@ -727,15 +820,33 @@ class BattleScene(Scene):
             surf, f"ATK: {active['damage']}", BLACK, 14, 112, text_w, start_size=20, min_size=11
         )
 
+        atk_name = active.get("attack_name") or "Ataque"
+        CardVisualStrategy._draw_fitted_text(
+            surf, atk_name, BLACK, 14, 144, text_w, start_size=16, min_size=10
+        )
+
+        req = active.get("attack_required_count", 0)
+        energias = active.get("energies", [])
+        tipo = active.get("attack_energy_type") or ""
+
+        CardVisualStrategy._draw_energy_icons(
+            surf,
+            14,
+            h - 86,
+            energias,
+            required_count=req,
+            energy_type=tipo
+        )
+
         max_hp = max(1, active["max_hp"])
         hp_ratio = max(0, active["hp"] / max_hp)
 
-        bar_y = h - 52
-        pygame.draw.rect(surf, GRAY, (14, bar_y, w - 28, 18), border_radius=8)
+        bar_y = h - 28
+        pygame.draw.rect(surf, GRAY, (14, bar_y, w - 28, 16), border_radius=8)
         pygame.draw.rect(
             surf,
             GREEN if hp_ratio > 0.4 else RED,
-            (14, bar_y, int((w - 28) * hp_ratio), 18),
+            (14, bar_y, int((w - 28) * hp_ratio), 16),
             border_radius=8
         )
         return surf
@@ -795,7 +906,12 @@ class BattleScene(Scene):
 
         timer_color = RED if self.logic.turn_timer <= INACTIVITY_WARNING_TIME else WHITE
         draw_text(surface, str(int(self.logic.turn_timer)), FONT_TITLE, timer_color, center_x, y, center=True)
-        y += 86
+        y += 64
+
+        atk_msg = "Ja atacou" if getattr(self.logic, "attacked_this_turn", False) else "Pode atacar"
+        atk_color = (180, 80, 80) if getattr(self.logic, "attacked_this_turn", False) else GREEN
+        draw_text(surface, atk_msg, FONT_SMALL, atk_color, center_x, y, center=True)
+        y += block_gap
 
         draw_text(surface, "Inatividade:", FONT, WHITE, x, y)
         y += line_gap
@@ -907,3 +1023,7 @@ class BattleScene(Scene):
 
         self.back_btn.draw(surface)
         self.end_turn_btn.draw(surface)
+
+        if getattr(self.logic, "last_error", None):
+            mensagem, _ttl = self.logic.last_error
+            self._error_popup.draw(surface, mensagem)
