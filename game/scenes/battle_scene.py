@@ -13,6 +13,10 @@ ENERGY_COLORS = {
     "psychic": (200, 130, 220),
 }
 
+CARD_NEUTRAL_FILL = (250, 250, 250)
+CARD_SELECTED_FILL = (255, 244, 200)
+CARD_NEUTRAL_BORDER = (66, 86, 210)
+
 
 def _cor_da_energia(tipo):
     return ENERGY_COLORS.get(tipo or "", (200, 200, 210))
@@ -98,13 +102,19 @@ class CardVisualStrategy:
     def _draw_fitted_text(base, text, color, x, y, max_width, start_size, min_size=10, bold=False, center=False):
         font = CardVisualStrategy._fit_font_for_text(text, max_width, start_size, min_size, bold)
         final_text = CardVisualStrategy._ellipsize(text, font, max_width)
-        draw_text(base, final_text, font, color, x, y, center=center)
+
+        if center:
+            text_surf = font.render(final_text, True, color)
+            rect = text_surf.get_rect(center=(x, y))
+            base.blit(text_surf, rect)
+        else:
+            draw_text(base, final_text, font, color, x, y)
 
     @staticmethod
     def _draw_card_3d_face(base, rect, selected=False):
         x, y, w, h = rect
-        fill = (252, 252, 252) if not selected else (255, 244, 200)
-        border = (66, 86, 210)
+        fill = CARD_NEUTRAL_FILL if not selected else CARD_SELECTED_FILL
+        border = CARD_NEUTRAL_BORDER
 
         pygame.draw.rect(base, fill, (x, y, w, h), border_radius=14)
         pygame.draw.rect(base, border, (x, y, w, h), 3, border_radius=14)
@@ -119,37 +129,30 @@ class CardVisualStrategy:
         base.blit(side_shadow, (x, y))
 
     @staticmethod
-    def _draw_hp_bar(base, x, y, w, ratio):
-        pygame.draw.rect(base, GRAY, (x, y, w, 18), border_radius=8)
+    def _draw_hp_bar(base, x, y, w, ratio, h=18):
+        pygame.draw.rect(base, GRAY, (x, y, w, h), border_radius=8)
         fill_w = max(0, int(w * ratio))
-        pygame.draw.rect(base, GREEN if ratio > 0.4 else RED, (x, y, fill_w, 18), border_radius=8)
+        pygame.draw.rect(base, GREEN if ratio > 0.4 else RED, (x, y, fill_w, h), border_radius=8)
 
     @staticmethod
-    def _draw_energy_icons(base, x, y, energies, required_count=0, energy_type=None):
+    def _draw_energy_icons(base, x, y, energies, required_count=0):
         atual = len(energies or [])
         total = max(required_count, atual)
         if total <= 0:
             return
 
+        icon_gap = 18
         for idx in range(total):
-            px = x + 12 + idx * 20
+            px = x + 8 + idx * icon_gap
             py = y
             if idx < atual:
                 e_tipo = energies[idx]
                 e_cor = _cor_da_energia(e_tipo)
-                pygame.draw.circle(base, e_cor, (px, py), 8)
-                pygame.draw.circle(base, BLACK, (px, py), 8, 1)
+                pygame.draw.circle(base, e_cor, (px, py), 7)
+                pygame.draw.circle(base, BLACK, (px, py), 7, 1)
             else:
-                pygame.draw.circle(base, (220, 220, 220), (px, py), 8)
-                pygame.draw.circle(base, BLACK, (px, py), 8, 1)
-
-        if required_count > 0:
-            color_text = (40, 130, 60) if atual >= required_count else (180, 30, 30)
-            label = f"Energia: {atual}/{required_count}"
-            CardVisualStrategy._draw_fitted_text(base, label, color_text, x, y + 16, 150, start_size=14, min_size=10)
-            if energy_type:
-                tipo_label = f"Tipo: {energy_type}"
-                CardVisualStrategy._draw_fitted_text(base, tipo_label, BLACK, x, y + 34, 150, start_size=13, min_size=10)
+                pygame.draw.circle(base, (220, 220, 220), (px, py), 7)
+                pygame.draw.circle(base, BLACK, (px, py), 7, 1)
 
     @staticmethod
     def _draw_on_base(card, selected=False, w=None, h=None):
@@ -166,7 +169,7 @@ class CardVisualStrategy:
             base, card.get("name", "Carta"), BLACK, pad_x, 12, text_w, start_size=22, min_size=11, bold=True
         )
         CardVisualStrategy._draw_fitted_text(
-            base, card.get("type", "").upper(), GRAY, pad_x, 46, text_w, start_size=16, min_size=10
+            base, card.get("type", "").upper(), GRAY, pad_x, 44, text_w, start_size=15, min_size=10
         )
 
         card_type = card.get("type")
@@ -175,12 +178,12 @@ class CardVisualStrategy:
             CardVisualStrategy._draw_fitted_text(
                 base,
                 f"HP: {card.get('hp', 0)}/{card.get('max_hp', card.get('hp', 0))}",
-                BLACK, pad_x, 82, text_w, start_size=17, min_size=10
+                BLACK, pad_x, 78, text_w, start_size=16, min_size=10
             )
             CardVisualStrategy._draw_fitted_text(
                 base,
                 f"ATK: {card.get('damage', 0)}",
-                BLACK, pad_x, 112, text_w, start_size=17, min_size=10
+                BLACK, pad_x, 104, text_w, start_size=16, min_size=10
             )
 
             req = card.get("attack_required_count", 0)
@@ -191,31 +194,31 @@ class CardVisualStrategy:
                     f"Custo: {req} {tipo}",
                     BLACK,
                     pad_x,
-                    142,
+                    130,
                     text_w,
-                    start_size=15,
+                    start_size=14,
                     min_size=10
                 )
 
             max_hp = max(1, card.get("max_hp", card.get("hp", 1)))
             hp_ratio = max(0, min(1, card.get("hp", 0) / max_hp))
-            CardVisualStrategy._draw_hp_bar(base, 12, h - 44, w - 24, hp_ratio)
+            CardVisualStrategy._draw_hp_bar(base, 12, h - 42, w - 24, hp_ratio, h=16)
 
         elif card_type == "energy":
             tipo = card.get("energy_type") or "electric"
             cor = _cor_da_energia(tipo)
 
-            pygame.draw.circle(base, cor, (w // 2, 96), 26)
-            pygame.draw.circle(base, BLACK, (w // 2, 96), 26, 2)
+            pygame.draw.circle(base, cor, (w // 2, 92), 24)
+            pygame.draw.circle(base, BLACK, (w // 2, 92), 24, 2)
 
             CardVisualStrategy._draw_fitted_text(
-                base, tipo.upper(), BLACK, 18, 132, w - 36, start_size=17, min_size=10, bold=True, center=True
+                base, tipo.upper(), BLACK, w // 2, 128, w - 36, start_size=16, min_size=10, bold=True, center=True
             )
 
-            pygame.draw.rect(base, (220, 220, 235), (12, h - 48, w - 24, 34), border_radius=8)
+            pygame.draw.rect(base, (220, 220, 235), (12, h - 46, w - 24, 32), border_radius=8)
 
         else:
-            offset_y = 74
+            offset_y = 72
             lines = []
 
             if card.get("heal", 0) > 0:
@@ -233,11 +236,11 @@ class CardVisualStrategy:
 
             for line in lines[:4]:
                 CardVisualStrategy._draw_fitted_text(
-                    base, line, BLACK, pad_x, offset_y, text_w, start_size=15, min_size=10
+                    base, line, BLACK, pad_x, offset_y, text_w, start_size=14, min_size=10
                 )
-                offset_y += 22
+                offset_y += 20
 
-            pygame.draw.rect(base, (220, 220, 235), (12, h - 48, w - 24, 34), border_radius=8)
+            pygame.draw.rect(base, (220, 220, 235), (12, h - 46, w - 24, 32), border_radius=8)
 
         return base
 
@@ -299,8 +302,8 @@ class ActivePokemonVisual:
         self.frozen_card = None
 
     def trigger_damage_feedback(self):
-        self.shake_time = 0.28
-        self.shake_strength = 10
+        self.shake_time = 0.24
+        self.shake_strength = 8
         self.hit_flash_time = 0.12
 
     def trigger_fall(self, knocked_card, direction=1):
@@ -309,7 +312,7 @@ class ActivePokemonVisual:
         self.fall_y = 0.0
         self.angle = 0.0
         self.vertical_speed = -120.0
-        self.angular_speed = 420.0 * direction
+        self.angular_speed = 220.0 * direction
 
     def update(self, dt):
         if self.shake_time > 0:
@@ -368,12 +371,12 @@ class BattleScene(Scene):
         self.pre_player_active = None
         self.pre_opponent_active = None
 
-        self.active_card_size = (210, 275)
+        self.active_card_size = (165, 220)
 
         self.arena_rotation = 0.0
         self.arena_rotation_target = 0.0
-        self.arena_rotation_min = -0.75
-        self.arena_rotation_max = 0.75
+        self.arena_rotation_min = -0.45
+        self.arena_rotation_max = 0.45
         self.dragging_arena = False
         self.drag_last_x = 0
 
@@ -386,8 +389,8 @@ class BattleScene(Scene):
             self.end_turn
         )
 
-        self.player_visual = ActivePokemonVisual(0, 0, facing_angle=-7)
-        self.opponent_visual = ActivePokemonVisual(0, 0, facing_angle=7)
+        self.player_visual = ActivePokemonVisual(0, 0, facing_angle=-1.0)
+        self.opponent_visual = ActivePokemonVisual(0, 0, facing_angle=1.0)
 
         self.rebuild_hand_positions()
         self._sync_last_hp()
@@ -576,9 +579,9 @@ class BattleScene(Scene):
 
     def _is_point_inside_arena_disc(self, pos):
         cx = self.center_battle_rect.centerx
-        cy = self.center_battle_rect.centery + 26
+        cy = self.center_battle_rect.centery + 12
         rx = self.center_battle_rect.w * 0.42
-        ry = self.center_battle_rect.h * 0.26
+        ry = self.center_battle_rect.h * 0.24
         px = (pos[0] - cx) / rx
         py = (pos[1] - cy) / ry
         return (px * px + py * py) <= 1.18
@@ -591,15 +594,15 @@ class BattleScene(Scene):
     def _update_arena_drag(self, mouse_x):
         dx = mouse_x - self.drag_last_x
         self.drag_last_x = mouse_x
-        self.arena_rotation_target += dx * 0.005
+        self.arena_rotation_target += dx * 0.0035
         self.arena_rotation_target = max(self.arena_rotation_min, min(self.arena_rotation_max, self.arena_rotation_target))
 
     def _get_arena_card_pose(self, side="player"):
         cx = self.center_battle_rect.centerx
-        cy = self.center_battle_rect.centery + 18
+        cy = self.center_battle_rect.centery + 2
 
         orbit_rx = self.center_battle_rect.w * 0.33
-        orbit_ry = self.center_battle_rect.h * 0.11
+        orbit_ry = self.center_battle_rect.h * 0.08
 
         base_angle = 0 if side == "player" else math.pi
         theta = base_angle + self.arena_rotation
@@ -611,13 +614,13 @@ class BattleScene(Scene):
         draw_y = cy + world_y * orbit_ry
 
         depth = (world_y + 1.0) * 0.5
-        scale = 0.88 + depth * 0.24
-        tilt = -world_x * 10
+        scale = 0.82 + depth * 0.10
+        tilt = -world_x * 0.8
 
         if side == "player":
-            face_angle = -6 - world_x * 6
+            face_angle = -0.3 - world_x * 0.45
         else:
-            face_angle = 6 - world_x * 6
+            face_angle = 0.3 - world_x * 0.45
 
         return draw_x, draw_y, depth, tilt, scale, face_angle
 
@@ -760,13 +763,13 @@ class BattleScene(Scene):
                 self.rebuild_hand_positions()
 
     def _draw_active_ground_shadow(self, surface, center_x, center_y, depth=1.0):
-        width = int(170 * depth)
-        height = int(36 * depth)
-        shadow = pygame.Surface((width + 36, height + 20), pygame.SRCALPHA)
-        alpha = int(80 + 40 * depth)
-        pygame.draw.ellipse(shadow, (0, 0, 0, alpha), (12, 5, width, height))
-        pygame.draw.ellipse(shadow, (0, 0, 0, max(24, alpha // 2)), (20, 10, width - 18, height - 10))
-        surface.blit(shadow, (center_x - (width + 36) // 2, center_y + int(118 * depth)))
+        width = int(130 * depth)
+        height = int(26 * depth)
+        shadow = pygame.Surface((width + 30, height + 16), pygame.SRCALPHA)
+        alpha = int(70 + 30 * depth)
+        pygame.draw.ellipse(shadow, (0, 0, 0, alpha), (10, 4, width, height))
+        pygame.draw.ellipse(shadow, (0, 0, 0, max(20, alpha // 2)), (16, 8, width - 16, height - 8))
+        surface.blit(shadow, (center_x - (width + 30) // 2, center_y + int(90 * depth)))
 
     def _draw_arena_floor(self, surface):
         cx = self.center_battle_rect.centerx
@@ -799,30 +802,40 @@ class BattleScene(Scene):
         h = int(base_h * scale)
 
         surf = pygame.Surface((w, h), pygame.SRCALPHA)
-        color = (255, 228, 228) if flash else (250, 250, 250)
+        fill_color = (255, 240, 240) if flash else CARD_NEUTRAL_FILL
 
-        pygame.draw.rect(surf, color, (0, 0, w, h), border_radius=16)
-        pygame.draw.rect(surf, ACCENT_2, (0, 0, w, h), 4, border_radius=16)
+        pygame.draw.rect(surf, fill_color, (0, 0, w, h), border_radius=16)
+        pygame.draw.rect(surf, CARD_NEUTRAL_BORDER, (0, 0, w, h), 4, border_radius=16)
 
-        shine = pygame.Surface((w - 12, 16), pygame.SRCALPHA)
-        pygame.draw.rect(shine, (255, 255, 255, 90), (0, 0, w - 12, 16), border_radius=10)
+        shine = pygame.Surface((w - 12, 14), pygame.SRCALPHA)
+        pygame.draw.rect(shine, (255, 255, 255, 95), (0, 0, w - 12, 14), border_radius=10)
         surf.blit(shine, (6, 5))
 
-        text_w = w - 28
-        name_font = CardVisualStrategy._fit_font_for_text(active["name"], text_w, 24, min_size=12, bold=True)
+        text_w = w - 24
+
+        name_y = 14
+        hp_y = 56
+        atk_y = 78
+        attack_name_y = 100
+        energy_dots_y = h - 48
+        energy_text_y = h - 36
+        type_text_y = h - 22
+        bar_y = h - 12
+
+        name_font = CardVisualStrategy._fit_font_for_text(active["name"], text_w, 16, min_size=10, bold=True)
         final_name = CardVisualStrategy._ellipsize(active["name"], name_font, text_w)
-        draw_text(surf, final_name, name_font, BLACK, 14, 18)
+        draw_text(surf, final_name, name_font, BLACK, 12, name_y)
 
         CardVisualStrategy._draw_fitted_text(
-            surf, f"HP: {active['hp']}/{active['max_hp']}", BLACK, 14, 78, text_w, start_size=20, min_size=11
+            surf, f"HP: {active['hp']}/{active['max_hp']}", BLACK, 12, hp_y, text_w, start_size=12, min_size=10
         )
         CardVisualStrategy._draw_fitted_text(
-            surf, f"ATK: {active['damage']}", BLACK, 14, 112, text_w, start_size=20, min_size=11
+            surf, f"ATK: {active['damage']}", BLACK, 12, atk_y, text_w, start_size=12, min_size=10
         )
 
         atk_name = active.get("attack_name") or "Ataque"
         CardVisualStrategy._draw_fitted_text(
-            surf, atk_name, BLACK, 14, 144, text_w, start_size=16, min_size=10
+            surf, atk_name, BLACK, 12, attack_name_y, text_w, start_size=11, min_size=10
         )
 
         req = active.get("attack_required_count", 0)
@@ -831,24 +844,40 @@ class BattleScene(Scene):
 
         CardVisualStrategy._draw_energy_icons(
             surf,
-            14,
-            h - 86,
+            12,
+            energy_dots_y,
             energias,
-            required_count=req,
-            energy_type=tipo
+            required_count=req
         )
+
+        if req > 0:
+            CardVisualStrategy._draw_fitted_text(
+                surf,
+                f"Energia: {len(energias)}/{req}",
+                BLACK,
+                12,
+                energy_text_y,
+                text_w,
+                start_size=10,
+                min_size=9
+            )
+
+        if tipo:
+            CardVisualStrategy._draw_fitted_text(
+                surf,
+                f"Tipo: {tipo}",
+                GRAY,
+                12,
+                type_text_y,
+                text_w,
+                start_size=10,
+                min_size=9
+            )
 
         max_hp = max(1, active["max_hp"])
         hp_ratio = max(0, active["hp"] / max_hp)
 
-        bar_y = h - 28
-        pygame.draw.rect(surf, GRAY, (14, bar_y, w - 28, 16), border_radius=8)
-        pygame.draw.rect(
-            surf,
-            GREEN if hp_ratio > 0.4 else RED,
-            (14, bar_y, int((w - 28) * hp_ratio), 16),
-            border_radius=8
-        )
+        CardVisualStrategy._draw_hp_bar(surf, 12, bar_y, w - 24, hp_ratio, h=8)
         return surf
 
     def _draw_active_with_anim(self, surface, active, label, visual, side):
@@ -857,8 +886,8 @@ class BattleScene(Scene):
         visual.base_x = pose_x
         visual.base_y = pose_y
 
-        label_y = pose_y - int(180 * scale)
-        draw_text(surface, label, FONT, WHITE, pose_x, label_y, center=True)
+        label_y = max(self.center_battle_rect.y + 8, pose_y - int(118 * scale))
+        draw_text(surface, label, FONT_SMALL, WHITE, pose_x, label_y, center=True)
 
         card_to_draw = visual.get_card_to_draw(active)
         if not card_to_draw:
@@ -868,7 +897,8 @@ class BattleScene(Scene):
         base = self._build_active_surface(card_to_draw, flash=flash, scale=scale)
 
         center_x, center_y = visual.current_center()
-        total_angle = face_angle + visual.angle + tilt
+
+        total_angle = (face_angle * 0.15) + (visual.angle * 0.30) + (tilt * 0.06)
 
         self._draw_active_ground_shadow(surface, center_x, center_y, depth=scale)
 
