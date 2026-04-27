@@ -3,13 +3,12 @@ from game.core.enums.TipoCarta import TipoCarta
 
 
 class CartaPokemonBase(CartaBase):
-    def __init__(self, id_carta, nome, descricao, hp, ataques=None, habilidades=None, state="basic"):
+    def __init__(self, id_carta, nome, descricao, hp, ataques=None, habilidades=None):
         super().__init__(id_carta, nome, descricao, TipoCarta.POKEMON, ataques, habilidades)
         self.hp_maximo = hp
         self.hp_atual = hp
         self.energias_anexadas = []
         self.vivo = True
-        self.state = state
 
     def anexar_energia(self, energia):
         self.energias_anexadas.append(energia)

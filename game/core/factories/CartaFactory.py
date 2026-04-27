@@ -18,14 +18,13 @@ class CartaFactory:
 
         if tipo == TipoCarta.POKEMON.value:
             return CartaPokemon(
-            id_carta=definicao["id"],
-            nome=definicao["name"],
-            descricao=definicao.get("description", ""),
-            hp=definicao["hp"],
-            ataques=ataques,
-            habilidades=habilidades,
-            state=definicao.get("State", "basic"), 
-        )
+                id_carta=definicao["id"],
+                nome=definicao["name"],
+                descricao=definicao.get("description", ""),
+                hp=definicao["hp"],
+                ataques=ataques,
+                habilidades=habilidades,
+            )
 
         if tipo == TipoCarta.ITEM.value:
             return CartaItemGenerico(
