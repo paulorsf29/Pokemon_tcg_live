@@ -173,7 +173,7 @@ class CardVisualStrategy:
         return base
 
     @staticmethod
-    def draw(surface, x, y, card, zoom=1.0, selected=False, pulse_time=0.0):
+    def draw(surface, x, y, card, zoom=1.0, selected=False, pulse_time=0.0, angle=0):
         pulse_scale = 1.0
         if pulse_time > 0:
             pulse_scale = 1.0 + math.sin((0.18 - pulse_time) * 28) * 0.10
@@ -181,10 +181,14 @@ class CardVisualStrategy:
         final_zoom = zoom * pulse_scale
         base = CardVisualStrategy._draw_on_base(card, selected=selected)
 
-        scaled_w = max(1, int(CardVisualStrategy.BASE_W * final_zoom))
-        scaled_h = max(1, int(CardVisualStrategy.BASE_H * final_zoom))
-        scaled = pygame.transform.smoothscale(base, (scaled_w, scaled_h))
-        surface.blit(scaled, (x, y))
+        center = (
+            x + int(CardVisualStrategy.BASE_W * zoom / 2),
+            y + int(CardVisualStrategy.BASE_H * zoom / 2)
+        )
+
+        transformed = pygame.transform.rotozoom(base, angle, final_zoom)
+        rect = transformed.get_rect(center=center)
+        surface.blit(transformed, rect)
 
 
 class ActivePokemonVisual:
@@ -253,9 +257,6 @@ class BattleScene(Scene):
         selected_deck = getattr(self.game, "selected_deck", "Deck Pikachu EX")
         self.logic = BattleLogicFactory.criar(selected_deck)
 
-        self.back_btn = Button((20, 20, 140, 46), "Render-se", self.surrender, bg=RED, hover=(170, 50, 50))
-        self.end_turn_btn = Button((1035, 675, 210, 52), "Encerrar turno", self.end_turn)
-
         self.zoom = 1.0
         self.min_zoom = 0.85
         self.max_zoom = 1.35
@@ -266,36 +267,98 @@ class BattleScene(Scene):
         self.opponent_delay = 0.8
         self._card_visual = CardVisualStrategy()
 
-        self.center_battle_rect = pygame.Rect(140, 190, 980, 320)
-        self.player_visual = ActivePokemonVisual(760, 355, facing_angle=-8)
-        self.opponent_visual = ActivePokemonVisual(430, 355, facing_angle=8)
-
         self.pending_result = None
         self.pending_result_delay = 0.0
         self.waiting_ko_animation = False
 
         self.last_player_hp = None
         self.last_opponent_hp = None
-
         self.pre_player_active = None
         self.pre_opponent_active = None
 
-        self.right_panel_rect = pygame.Rect(1030, 120, 220, 530)
+        self.active_card_size = (210, 275)
 
-        self.hand_panel_rect = pygame.Rect(70, 545, 930, 170)
-        self.hand_view_rect = pygame.Rect(115, 585, 820, 120)
-        self.hand_start_x = self.hand_view_rect.x
-        self.hand_y = self.hand_view_rect.y
-        self.hand_scroll_x = 0
-        self.hand_min_gap = 18
+        self.arena_rotation = 0.0
+        self.arena_rotation_target = 0.0
+        self.arena_rotation_min = -0.75
+        self.arena_rotation_max = 0.75
+        self.dragging_arena = False
+        self.drag_last_x = 0
 
-        self.left_arrow_rect = pygame.Rect(80, 620, 28, 50)
-        self.right_arrow_rect = pygame.Rect(945, 620, 28, 50)
+        self._build_layout()
 
-        self.active_card_size = (200, 260)
+        self.back_btn = Button((self.margin, self.margin, 180, 54), "Render-se", self.surrender, bg=RED, hover=(170, 50, 50))
+        self.end_turn_btn = Button(
+            (self.end_turn_rect.x, self.end_turn_rect.y, self.end_turn_rect.w, self.end_turn_rect.h),
+            "Encerrar turno",
+            self.end_turn
+        )
+
+        self.player_visual = ActivePokemonVisual(0, 0, facing_angle=-7)
+        self.opponent_visual = ActivePokemonVisual(0, 0, facing_angle=7)
 
         self.rebuild_hand_positions()
         self._sync_last_hp()
+
+    def _build_layout(self):
+        self.margin = 24
+        top_gap = 12
+        section_gap = 16
+
+        self.header_rect = pygame.Rect(
+            self.margin + 110,
+            95,
+            WIDTH - (self.margin * 2) - 220,
+            112
+        )
+
+        right_w = 250
+        self.right_panel_rect = pygame.Rect(
+            WIDTH - self.margin - right_w,
+            230,
+            right_w,
+            HEIGHT - 230 - 140
+        )
+
+        left_area_x = self.margin + 70
+        left_area_w = self.right_panel_rect.x - left_area_x - section_gap
+
+        self.center_battle_rect = pygame.Rect(
+            left_area_x + 50,
+            self.header_rect.bottom + top_gap,
+            left_area_w - 50,
+            int(HEIGHT * 0.34)
+        )
+
+        self.hand_panel_rect = pygame.Rect(
+            left_area_x,
+            self.center_battle_rect.bottom + section_gap,
+            left_area_w,
+            HEIGHT - (self.center_battle_rect.bottom + section_gap) - 28
+        )
+
+        self.hand_view_rect = pygame.Rect(
+            self.hand_panel_rect.x + 42,
+            self.hand_panel_rect.y + 44,
+            self.hand_panel_rect.w - 84,
+            self.hand_panel_rect.h - 54
+        )
+
+        self.hand_start_x = self.hand_view_rect.x
+        self.hand_y = self.hand_view_rect.y + 4
+        self.hand_scroll_x = getattr(self, "hand_scroll_x", 0)
+        self.hand_min_gap = 18
+
+        arrow_y = self.hand_view_rect.y + (self.hand_view_rect.h // 2) - 25
+        self.left_arrow_rect = pygame.Rect(self.hand_panel_rect.x + 8, arrow_y, 28, 50)
+        self.right_arrow_rect = pygame.Rect(self.hand_panel_rect.right - 36, arrow_y, 28, 50)
+
+        self.end_turn_rect = pygame.Rect(
+            self.right_panel_rect.x,
+            self.right_panel_rect.bottom + 14,
+            self.right_panel_rect.w,
+            56
+        )
 
     def _sync_last_hp(self):
         self.last_player_hp = self.logic.player_active["hp"] if self.logic.player_active else None
@@ -370,12 +433,18 @@ class BattleScene(Scene):
                 self.logic.register_action()
                 return
 
+    def _player_drop_target_rect(self):
+        cx, cy, _, _, scale, _ = self._get_arena_card_pose(side="player")
+        w = int(self.active_card_size[0] * scale)
+        h = int(self.active_card_size[1] * scale)
+        return pygame.Rect(cx - w // 2, cy - h // 2, w, h)
+
     def use_selected_card_if_dropped_on_active(self):
         if self.selected_index is None:
             return False
 
         sprite = self.card_sprites[self.selected_index]
-        target_rect = pygame.Rect(660, 225, 260, 280)
+        target_rect = self._player_drop_target_rect()
 
         if target_rect.colliderect(sprite.rect(self.zoom)):
             ok, _ = self.logic.use_card_from_hand(self.selected_index)
@@ -413,12 +482,57 @@ class BattleScene(Scene):
                 knocked = self.pre_player_active or self.logic.player_active
                 self.player_visual.trigger_fall(knocked, direction=-1)
 
+    def _is_point_inside_arena_disc(self, pos):
+        cx = self.center_battle_rect.centerx
+        cy = self.center_battle_rect.centery + 26
+        rx = self.center_battle_rect.w * 0.42
+        ry = self.center_battle_rect.h * 0.26
+
+        px = (pos[0] - cx) / rx
+        py = (pos[1] - cy) / ry
+        return (px * px + py * py) <= 1.18
+
+    def _is_point_in_arena_drag_zone(self, pos):
+        if not self.center_battle_rect.collidepoint(pos):
+            return False
+        return self._is_point_inside_arena_disc(pos)
+
+    def _update_arena_drag(self, mouse_x):
+        dx = mouse_x - self.drag_last_x
+        self.drag_last_x = mouse_x
+        self.arena_rotation_target += dx * 0.005
+        self.arena_rotation_target = max(self.arena_rotation_min, min(self.arena_rotation_max, self.arena_rotation_target))
+
+    def _get_arena_card_pose(self, side="player"):
+        cx = self.center_battle_rect.centerx
+        cy = self.center_battle_rect.centery + 18
+
+        orbit_rx = self.center_battle_rect.w * 0.33
+        orbit_ry = self.center_battle_rect.h * 0.11
+
+        base_angle = 0 if side == "player" else math.pi
+        theta = base_angle + self.arena_rotation
+
+        world_x = math.cos(theta)
+        world_y = math.sin(theta)
+
+        draw_x = cx + world_x * orbit_rx
+        draw_y = cy + world_y * orbit_ry
+
+        depth = (world_y + 1.0) * 0.5
+        scale = 0.88 + depth * 0.24
+        tilt = -world_x * 10
+
+        if side == "player":
+            face_angle = -6 - world_x * 6
+        else:
+            face_angle = 6 - world_x * 6
+
+        return draw_x, draw_y, depth, tilt, scale, face_angle
+
     def handle_event(self, event):
         self.back_btn.handle_event(event)
         self.end_turn_btn.handle_event(event)
-
-        if self.waiting_ko_animation or self.logic.winner:
-            return
 
         mouse_pos = pygame.mouse.get_pos()
         mouse_in_hand = self.hand_view_rect.collidepoint(mouse_pos)
@@ -455,6 +569,21 @@ class BattleScene(Scene):
                     self.scroll_hand(180)
                     return
 
+                if self._is_point_in_arena_drag_zone(event.pos):
+                    self.dragging_arena = True
+                    self.drag_last_x = event.pos[0]
+                    return
+
+        if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            self.dragging_arena = False
+
+        if event.type == pygame.MOUSEMOTION and self.dragging_arena:
+            self._update_arena_drag(event.pos[0])
+            return
+
+        if self.waiting_ko_animation or self.logic.winner:
+            return
+
         if self.logic.current_turn != "player":
             return
 
@@ -490,12 +619,16 @@ class BattleScene(Scene):
                 self.adjust_zoom(-self.zoom_step)
 
             elif event.key == pygame.K_LEFT:
-                self.scroll_hand(-180)
+                self.arena_rotation_target -= 0.08
+                self.arena_rotation_target = max(self.arena_rotation_min, self.arena_rotation_target)
 
             elif event.key == pygame.K_RIGHT:
-                self.scroll_hand(180)
+                self.arena_rotation_target += 0.08
+                self.arena_rotation_target = min(self.arena_rotation_max, self.arena_rotation_target)
 
     def update(self, dt):
+        self.arena_rotation += (self.arena_rotation_target - self.arena_rotation) * 0.12
+
         for sprite in self.card_sprites:
             sprite.update(dt)
 
@@ -533,14 +666,45 @@ class BattleScene(Scene):
                 self.opponent_delay = 0.8
                 self.rebuild_hand_positions()
 
-    def _draw_active_ground_shadow(self, surface, center_x, center_y, width=170, height=36):
-        shadow = pygame.Surface((width + 30, height + 20), pygame.SRCALPHA)
-        pygame.draw.ellipse(shadow, (0, 0, 0, 85), (10, 4, width, height))
-        pygame.draw.ellipse(shadow, (0, 0, 0, 45), (18, 10, width - 16, height - 10))
-        surface.blit(shadow, (center_x - (width + 30) // 2, center_y + 118))
+    def _draw_active_ground_shadow(self, surface, center_x, center_y, depth=1.0):
+        width = int(170 * depth)
+        height = int(36 * depth)
+        shadow = pygame.Surface((width + 36, height + 20), pygame.SRCALPHA)
+        alpha = int(80 + 40 * depth)
+        pygame.draw.ellipse(shadow, (0, 0, 0, alpha), (12, 5, width, height))
+        pygame.draw.ellipse(shadow, (0, 0, 0, max(24, alpha // 2)), (20, 10, width - 18, height - 10))
+        surface.blit(shadow, (center_x - (width + 36) // 2, center_y + int(118 * depth)))
 
-    def _build_active_surface(self, active, flash=False):
-        w, h = self.active_card_size
+    def _draw_arena_floor(self, surface):
+        cx = self.center_battle_rect.centerx
+        cy = self.center_battle_rect.centery + 24
+
+        floor_shadow = pygame.Surface((self.center_battle_rect.w, self.center_battle_rect.h), pygame.SRCALPHA)
+        pygame.draw.ellipse(
+            floor_shadow,
+            (0, 0, 0, 55),
+            (int(self.center_battle_rect.w * 0.15), int(self.center_battle_rect.h * 0.60),
+             int(self.center_battle_rect.w * 0.70), int(self.center_battle_rect.h * 0.22))
+        )
+        surface.blit(floor_shadow, (self.center_battle_rect.x, self.center_battle_rect.y))
+
+        arena_w = int(self.center_battle_rect.w * 0.48)
+        arena_h = int(self.center_battle_rect.h * 0.24)
+
+        pygame.draw.ellipse(surface, (44, 108, 92), (cx - arena_w // 2, cy - arena_h // 2, arena_w, arena_h))
+        pygame.draw.ellipse(surface, (78, 155, 132), (cx - int(arena_w * 0.38), cy - int(arena_h * 0.18), int(arena_w * 0.76), int(arena_h * 0.36)))
+        pygame.draw.ellipse(surface, (200, 240, 220), (cx - arena_w // 2, cy - arena_h // 2, arena_w, arena_h), 3)
+
+        ring_surface = pygame.Surface((arena_w + 40, arena_h + 40), pygame.SRCALPHA)
+        pygame.draw.ellipse(ring_surface, (255, 255, 255, 35), (10, 10, arena_w + 20, arena_h), 4)
+        pygame.draw.ellipse(ring_surface, (0, 0, 0, 28), (10, 18, arena_w + 20, arena_h), 5)
+        surface.blit(ring_surface, (cx - (arena_w + 40) // 2, cy - (arena_h + 40) // 2))
+
+    def _build_active_surface(self, active, flash=False, scale=1.0):
+        base_w, base_h = self.active_card_size
+        w = int(base_w * scale)
+        h = int(base_h * scale)
+
         surf = pygame.Surface((w, h), pygame.SRCALPHA)
         color = (255, 228, 228) if flash else (250, 250, 250)
 
@@ -565,32 +729,42 @@ class BattleScene(Scene):
 
         max_hp = max(1, active["max_hp"])
         hp_ratio = max(0, active["hp"] / max_hp)
-        pygame.draw.rect(surf, GRAY, (14, h - 52, w - 28, 18), border_radius=8)
+
+        bar_y = h - 52
+        pygame.draw.rect(surf, GRAY, (14, bar_y, w - 28, 18), border_radius=8)
         pygame.draw.rect(
             surf,
             GREEN if hp_ratio > 0.4 else RED,
-            (14, h - 52, int((w - 28) * hp_ratio), 18),
+            (14, bar_y, int((w - 28) * hp_ratio), 18),
             border_radius=8
         )
         return surf
 
-    def _draw_active_with_anim(self, surface, active, label, visual):
-        label_x = visual.base_x
-        label_y = visual.base_y - 175
-        draw_text(surface, label, FONT, WHITE, label_x, label_y, center=True)
+    def _draw_active_with_anim(self, surface, active, label, visual, side):
+        pose_x, pose_y, depth, tilt, scale, face_angle = self._get_arena_card_pose(side=side)
+
+        visual.base_x = pose_x
+        visual.base_y = pose_y
+
+        label_y = pose_y - int(180 * scale)
+        draw_text(surface, label, FONT, WHITE, pose_x, label_y, center=True)
 
         card_to_draw = visual.get_card_to_draw(active)
         if not card_to_draw:
-            return
+            return depth
 
         flash = visual.hit_flash_time > 0
-        base = self._build_active_surface(card_to_draw, flash=flash)
+        base = self._build_active_surface(card_to_draw, flash=flash, scale=scale)
 
-        self._draw_active_ground_shadow(surface, visual.current_center()[0], visual.current_center()[1])
+        center_x, center_y = visual.current_center()
+        total_angle = face_angle + visual.angle + tilt
 
-        transformed = pygame.transform.rotozoom(base, visual.current_angle(), 1.0)
-        rect = transformed.get_rect(center=visual.current_center())
+        self._draw_active_ground_shadow(surface, center_x, center_y, depth=scale)
+
+        transformed = pygame.transform.rotozoom(base, total_angle, 1.0)
+        rect = transformed.get_rect(center=(center_x, center_y))
         surface.blit(transformed, rect)
+        return depth
 
     def _draw_zoom_controls(self, surface):
         plus_rect = pygame.Rect(self.right_panel_rect.right - 30, self.right_panel_rect.bottom - 64, 24, 24)
@@ -637,18 +811,11 @@ class BattleScene(Scene):
         draw_text(surface, f"Oponente: {self.logic.opponent_prizes_taken}/6", FONT_SMALL, TEXT, x, y)
 
         y += block_gap
-        draw_text(surface, "Zoom mao:", FONT, WHITE, x, y)
+        draw_text(surface, "Rotacao arena:", FONT, WHITE, x, y)
         y += line_gap
-        draw_text(surface, f"{self.zoom:.2f}x", FONT_SMALL, TEXT, x, y)
+        draw_text(surface, f"{self.arena_rotation:.2f}", FONT_SMALL, TEXT, x, y)
         y += line_gap
-        draw_text(surface, "Scroll ou setas", FONT_SMALL, TEXT, x, y)
-
-        y += block_gap
-        draw_text(surface, "Comandos:", FONT, WHITE, x, y)
-        y += line_gap
-        draw_text(surface, "SPACE = atacar", FONT_SMALL, TEXT, x, y)
-        y += line_gap
-        draw_text(surface, "Setas = navegar", FONT_SMALL, TEXT, x, y)
+        draw_text(surface, "Arraste o chao", FONT_SMALL, TEXT, x, y)
 
         surface.set_clip(old_clip)
 
@@ -704,19 +871,33 @@ class BattleScene(Scene):
 
     def draw(self, surface):
         surface.fill(TABLE_GREEN)
-        draw_text(surface, f"Batalha - {self.mode_name}", FONT_BIG, WHITE, WIDTH // 2, 30, center=True)
+        draw_text(surface, f"Batalha - {self.mode_name}", FONT_TITLE, WHITE, WIDTH // 2, 40, center=True)
 
-        draw_panel(surface, pygame.Rect(120, 70, 1040, 120), color=TABLE_GREEN_2)
-        draw_text(surface, "Oponente", FONT_MED, WHITE, 150, 90)
-        draw_text(surface, f"Premios: {self.logic.opponent_prizes_taken}/6", FONT, WHITE, 150, 125)
-        draw_text(surface, f"Deck: {len(self.logic.opponent_deck)}", FONT, WHITE, 150, 150)
+        draw_panel(surface, self.header_rect, color=TABLE_GREEN_2)
+        draw_text(surface, "Oponente", FONT_BIG, WHITE, self.header_rect.x + 36, self.header_rect.y + 20)
+        draw_text(surface, f"Premios: {self.logic.opponent_prizes_taken}/6", FONT, WHITE, self.header_rect.x + 36, self.header_rect.y + 66)
+        draw_text(surface, f"Deck: {len(self.logic.opponent_deck)}", FONT, WHITE, self.header_rect.x + 36, self.header_rect.y + 92)
 
         draw_panel(surface, self.center_battle_rect, color=TABLE_GREEN_3)
-        self._draw_active_with_anim(surface, self.logic.opponent_active, "Pokemon Ativo do Oponente", self.opponent_visual)
-        self._draw_active_with_anim(surface, self.logic.player_active, "Seu Pokemon Ativo", self.player_visual)
+        self._draw_arena_floor(surface)
+
+        player_pose = self._get_arena_card_pose("player")
+        opponent_pose = self._get_arena_card_pose("opponent")
+
+        draw_order = [
+            ("player", player_pose[2]),
+            ("opponent", opponent_pose[2]),
+        ]
+        draw_order.sort(key=lambda item: item[1])
+
+        for who, _depth in draw_order:
+            if who == "player":
+                self._draw_active_with_anim(surface, self.logic.player_active, "Seu Pokemon Ativo", self.player_visual, "player")
+            else:
+                self._draw_active_with_anim(surface, self.logic.opponent_active, "Pokemon Ativo do Oponente", self.opponent_visual, "opponent")
 
         draw_panel(surface, self.hand_panel_rect, color=TABLE_GREEN_2)
-        draw_text(surface, "Sua mao", FONT_MED, WHITE, 95, 560)
+        draw_text(surface, "Sua mao", FONT_BIG, WHITE, self.hand_panel_rect.x + 24, self.hand_panel_rect.y + 12)
         self._draw_hand_cards(surface)
         self._draw_hand_arrows(surface)
 
