@@ -408,11 +408,14 @@ class BattleScene(Scene):
         )
 
         right_w = 250
+        right_panel_y = 230
+        right_panel_bottom_margin = 150
+
         self.right_panel_rect = pygame.Rect(
             WIDTH - self.margin - right_w,
-            230,
+            right_panel_y,
             right_w,
-            HEIGHT - 230 - 140
+            HEIGHT - right_panel_y - right_panel_bottom_margin
         )
 
         left_area_x = self.margin + 70
@@ -647,8 +650,8 @@ class BattleScene(Scene):
                 return
 
             if event.button == 1:
-                plus_rect = pygame.Rect(self.right_panel_rect.right - 30, self.right_panel_rect.bottom - 64, 24, 24)
-                minus_rect = pygame.Rect(self.right_panel_rect.right - 30, self.right_panel_rect.bottom - 34, 24, 24)
+                plus_rect = pygame.Rect(self.right_panel_rect.right - 36, self.right_panel_rect.bottom - 54, 24, 24)
+                minus_rect = pygame.Rect(self.right_panel_rect.right - 36, self.right_panel_rect.bottom - 26, 24, 24)
 
                 if plus_rect.collidepoint(event.pos):
                     self.adjust_zoom(self.zoom_step)
@@ -908,8 +911,8 @@ class BattleScene(Scene):
         return depth
 
     def _draw_zoom_controls(self, surface):
-        plus_rect = pygame.Rect(self.right_panel_rect.right - 30, self.right_panel_rect.bottom - 64, 24, 24)
-        minus_rect = pygame.Rect(self.right_panel_rect.right - 30, self.right_panel_rect.bottom - 34, 24, 24)
+        plus_rect = pygame.Rect(self.right_panel_rect.right - 36, self.right_panel_rect.bottom - 54, 24, 24)
+        minus_rect = pygame.Rect(self.right_panel_rect.right - 36, self.right_panel_rect.bottom - 26, 24, 24)
 
         pygame.draw.rect(surface, (45, 52, 70), plus_rect, border_radius=8)
         pygame.draw.rect(surface, (45, 52, 70), minus_rect, border_radius=8)
@@ -925,23 +928,24 @@ class BattleScene(Scene):
 
         center_x = panel_rect.centerx
         x = panel_rect.x + 18
-        y = panel_rect.y + 24
-        line_gap = 28
-        block_gap = 34
+        y = panel_rect.y + 14
+        line_gap = 24
+        block_gap = 22
 
         draw_text(surface, "Turno", FONT_MED, ACCENT, center_x, y, center=True)
-        y += 44
+        y += 38
+
         draw_text(surface, self.logic.current_turn.upper(), FONT, WHITE, center_x, y, center=True)
-        y += 56
+        y += 44
 
         timer_color = RED if self.logic.turn_timer <= INACTIVITY_WARNING_TIME else WHITE
         draw_text(surface, str(int(self.logic.turn_timer)), FONT_TITLE, timer_color, center_x, y, center=True)
-        y += 64
+        y += 72
 
         atk_msg = "Ja atacou" if getattr(self.logic, "attacked_this_turn", False) else "Pode atacar"
         atk_color = (180, 80, 80) if getattr(self.logic, "attacked_this_turn", False) else GREEN
         draw_text(surface, atk_msg, FONT_SMALL, atk_color, center_x, y, center=True)
-        y += block_gap
+        y += block_gap + 6
 
         draw_text(surface, "Inatividade:", FONT, WHITE, x, y)
         y += line_gap
